@@ -14,8 +14,12 @@ AH_DUMMP_FILE = 'AH_DUMP.json'
 LU_md5 = None
 
 
-@app.route('/fish')
-def api_fish():
+@app.route("/")
+def hello():
+		return redirect("/update_AH")
+
+@app.route('/update_AH')
+def update_AH():
 
 	#Get lastest AH listings
 	print ("Geting list of fish")
@@ -46,9 +50,16 @@ def api_fish():
 	if AH_LU != None:
 		print ("Updated file")
 		print (AH_DUMP)
-		return redirect("/fish_prices")
+		return redirect("/find_user")
 	else:
 		return "Not quite"
+
+@app.route('/find_user')
+def find_user():
+	#parse username
+	listing = search_username('Vallcore')
+	return str(listing)
+
 
 @app.route('/fish_prices')
 def fish_prices():
@@ -63,10 +74,40 @@ def fish_prices():
 
 	
 
-@app.route("/")
-def hello():
-		return "WIP"
 
+#Seach users and build list of their listed items
+def search_username(uname):
+
+	uname_count =0 
+	AH_items = []
+	Item_details = []
+
+
+	with open(AH_DUMMP_FILE, 'r') as f:
+		ah_json = json.load(f)
+		#verify and parse json
+		for auc in ah_json['auctions']:
+			if auc['owner'] == uname:
+				uname_count += 1
+				AH_items.append(auc['owner'])
+				AH_items.append(auc['item'])
+				Item_details.append(auc['item'])
+				AH_items.append(auc['ownerRealm'])
+				
+		for i in Item_details:
+			print("Searching for user items")
+			Item_details = i
+			print("ITEM number " + str(i))
+			print(('https://eu.api.battle.net/wow/item/18803?locale=en_GB&jsonp='+str(i)+'&apikey='+BLIZZ_API_KEY))
+			ITEM_URL = ('https://eu.api.battle.net/wow/item/18803?locale=en_GB&jsonp='+str(i)+'&apikey='+BLIZZ_API_KEY)
+			item_reponse = requests.get(ITEM_URL)
+			item_json = item_reponse.json()
+
+
+		if uname_count != 0:
+			return AH_items	
+		else:
+			return "No users with that name" 
 
 
 #Used to create hash
