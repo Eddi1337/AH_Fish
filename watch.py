@@ -16,7 +16,7 @@ LU_md5 = None
 
 @app.route("/")
 def hello():
-		return redirect("/update_AH")
+	return render_template('index.html')
 
 @app.route('/update_AH')
 def update_AH():
@@ -61,18 +61,54 @@ def find_user():
 	return str(listing)
 
 
-@app.route('/fish_prices')
-def fish_prices():
-	vallcore_count = 0
+@app.route('/fish_count')
+def fish_count():
+	f_count = 0
 	with open(AH_DUMMP_FILE, 'r') as f:
 		ah_json = json.load(f)
 		#verify and parse json
 		for auc in ah_json['auctions']:
-			if auc['owner'] == "Vallcore":
-				vallcore_count += 1
-		return vallcore_count
+			#Item is Savory Delight
+			if auc['item'] == "6657":
+				f_count += 1
+			return f_count
 
-	
+@app.route('/fish_avg_val')
+def fish_avg_val():
+	f_count = 0
+	with open(AH_DUMMP_FILE, 'r') as f:
+		ah_json = json.load(f)
+		#verify and parse json
+		for auc in ah_json['auctions']:
+			#Item is Savory Delight
+			if auc['item'] == "6657":
+				f_count += 1
+				avg_price = fetch_avg_price(auc['item'])
+				return avg_price
+			else:
+				return "not quite"
+
+#Get avg price for an item
+def fetch_avg_price(ah_item):
+	print("Getting avg price for item")
+	i_val = 0
+	item_count = 0
+	item_list = []
+	with open(AH_DUMMP_FILE, 'r') as f:
+		ah_json = json.load(f)
+		for auc in ah_json['auctions']:
+			if auc['item'] == ah_item:
+				item_count += 1
+				item_list.append(auc['item'])
+				if auc['quantity'] > 1:
+					i_val += (auc['buyout'] / auc['quantity'])
+				elif auc['quantity'] == 1:
+					i_val += auc['buyout']
+	avg_val = sum(i_val/item_count)
+	return avg_val
+	#sum items
+
+
 
 
 #Seach users and build list of their listed items
@@ -80,8 +116,8 @@ def search_username(uname):
 
 	uname_count =0 
 	AH_items = []
-	Item_details = []
-
+	User_Iist_Item_details = []
+	Listed_Items = []
 
 	with open(AH_DUMMP_FILE, 'r') as f:
 		ah_json = json.load(f)
@@ -91,24 +127,24 @@ def search_username(uname):
 				uname_count += 1
 				AH_items.append(auc['owner'])
 				AH_items.append(auc['item'])
-				Item_details.append(auc['item'])
+				User_Iist_Item_details.append(auc['item'])
 				AH_items.append(auc['ownerRealm'])
 				
-		for i in Item_details:
-			print("Searching for user items")
-			Item_details = i
-			print("ITEM number " + str(i))
-			print(('https://eu.api.battle.net/wow/item/18803?locale=en_GB&jsonp='+str(i)+'&apikey='+BLIZZ_API_KEY))
-			ITEM_URL = ('https://eu.api.battle.net/wow/item/18803?locale=en_GB&jsonp='+str(i)+'&apikey='+BLIZZ_API_KEY)
-			item_reponse = requests.get(ITEM_URL)
-			item_json = item_reponse.json()
+		for i in User_Iist_Item_details:
+			Listed_Items.append(get_item_details(i))
 
-
-		if uname_count != 0:
+		if uname_count != 0: 
 			return AH_items	
 		else:
 			return "No users with that name" 
 
+#Get json dic of from item number and return json item
+def get_item_details(item):
+	print("ITEM number " + str(item))
+	ITEM_URL = ('https://eu.api.battle.net/wow/item/18803?locale=en_GB&jsonp='+str(item)+'&apikey='+BLIZZ_API_KEY)
+	item_reponse = requests.get(ITEM_URL)
+	item_json = item_reponse.json()
+	return item_json
 
 #Used to create hash
 def md5(fname):
