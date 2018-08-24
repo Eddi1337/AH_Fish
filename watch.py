@@ -18,12 +18,14 @@ LU_md5 = None
 
 
 @app.route("/")
+@app.route("/index")
+@app.route("/index.html")
 def hello():
-	#Update AH file
-	#schedule.every(30).minutes.do(update_AH())
-	#Get avg price of item per hour
-	#schedule.every(60).minutes.do(write_avg_fish_val())
 	return render_template('index.html')
+
+@app.errorhandler(404)
+def page_not_found(e):
+    return render_template('404.html'), 404
 
 @app.route('/update_AH')
 def update_AH():
@@ -49,7 +51,7 @@ def update_AH():
 		#Dump it into a json file
 		with open(AH_DUMMP_FILE, 'w') as f:
 			json.dump(ah_dump_json, f)
-		print("Updaing JSON AH file") 
+		print("Updaing JSON AH file")
 
 	#redirect to page to pass
 	#TODO
@@ -61,10 +63,11 @@ def update_AH():
 	else:
 		return "Not quite"
 
-@app.route('/find_user')
+@app.route('/find_user', methods=['GET', 'POST'])
 def find_user():
 	#parse username
-	listing = search_username('Vallcore')
+	name = request.form['search_name']
+	listing = search_username(name)
 	return str(listing)
 
 #Count number of fish (needs to be changes to it can be passed an ID)
@@ -122,8 +125,8 @@ def fetch_avg_price(ah_item):
 @app.route('/fish_avg_val_write')
 def write_avg_fish_val():
 	avg_val = None
-	today = datetime.date.today()
-	time = today.strftime('%d-%I')
+	today = datetime.datetime.now()
+	time = today.strftime('%d-%I%p')
 	#Item is currently Savory Delights
 	avg_val = fish_avg_val(6657)
 	print ('['+time+']'+'['+avg_val+']')
@@ -182,8 +185,6 @@ def md5(fname):
 	hash = hashlib.md5()
 	hash.update(fname)
 	return hash
-
-
 
 
 #Starts the server on local network (Forward through router for external access)
