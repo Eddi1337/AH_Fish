@@ -1,33 +1,16 @@
+ * Serving Flask app "watch.py"
+ * Environment: production
+   WARNING: Do not use the development server in a production environment.
+   Use a production WSGI server instead.
+ * Debug mode: off
+Usage: flask run [OPTIONS]
+
+Error: While importing "watch", an ImportError was raised:
+
 Traceback (most recent call last):
-  File "/usr/bin/flask", line 11, in <module>
-    load_entry_point('Flask==0.12.2', 'console_scripts', 'flask')()
-  File "/usr/lib/python3/dist-packages/flask/cli.py", line 513, in main
-    cli.main(args=args, prog_name=name)
-  File "/usr/lib/python3/dist-packages/flask/cli.py", line 380, in main
-    return AppGroup.main(self, *args, **kwargs)
-  File "/usr/lib/python3/dist-packages/click/core.py", line 697, in main
-    rv = self.invoke(ctx)
-  File "/usr/lib/python3/dist-packages/click/core.py", line 1066, in invoke
-    return _process_result(sub_ctx.command.invoke(sub_ctx))
-  File "/usr/lib/python3/dist-packages/click/core.py", line 895, in invoke
-    return ctx.invoke(self.callback, **ctx.params)
-  File "/usr/lib/python3/dist-packages/click/core.py", line 535, in invoke
-    return callback(*args, **kwargs)
-  File "/usr/lib/python3/dist-packages/click/decorators.py", line 64, in new_func
-    return ctx.invoke(f, obj, *args[1:], **kwargs)
-  File "/usr/lib/python3/dist-packages/click/core.py", line 535, in invoke
-    return callback(*args, **kwargs)
-  File "/usr/lib/python3/dist-packages/flask/cli.py", line 423, in run_command
-    app = DispatchingApp(info.load_app, use_eager_loading=eager_loading)
-  File "/usr/lib/python3/dist-packages/flask/cli.py", line 152, in __init__
-    self._load_unlocked()
-  File "/usr/lib/python3/dist-packages/flask/cli.py", line 176, in _load_unlocked
-    self._app = rv = self.loader()
-  File "/usr/lib/python3/dist-packages/flask/cli.py", line 237, in load_app
-    rv = locate_app(self.app_import_path)
-  File "/usr/lib/python3/dist-packages/flask/cli.py", line 90, in locate_app
-    __import__(module)
-  File "/home/ed/fishwatcher/watch.py", line 13
-    print "Geting cheapest fish"
-                               ^
-SyntaxError: Missing parentheses in call to 'print'. Did you mean print("Geting cheapest fish")?
+  File "/usr/local/lib/python2.7/dist-packages/flask/cli.py", line 235, in locate_app
+    __import__(module_name)
+  File "/home/ed/AH_Fish/watch.py", line 5, in <module>
+    import schedule
+ImportError: No module named schedule
+
