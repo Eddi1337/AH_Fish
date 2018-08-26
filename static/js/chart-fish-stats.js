@@ -54,7 +54,7 @@ var myLineChart = new Chart(ctx, {
     data: {
       labels: [time_list],
       datasets: [{
-        label: "Avg_price",
+        label: "Avg Gold Price",
         lineTension: 0.3,
         backgroundColor: "rgba(2,117,216,0.2)",
         borderColor: "rgba(2,117,216,1)",
@@ -84,7 +84,6 @@ var myLineChart = new Chart(ctx, {
         yAxes: [{
           ticks: {
             min: 0,
-            max: 500,
             maxTicksLimit: 5
           },
           gridLines: {
