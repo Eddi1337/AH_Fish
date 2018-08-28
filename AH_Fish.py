@@ -12,8 +12,9 @@ app = Flask(__name__)
 BLIZZ_API_KEY = 'fj6cra6e62y46crahyxpmf2ky53bn8ks'
 AH_URL = ('https://eu.api.battle.net/wow/auction/data/Aerie%20peak?locale=en_GB&apikey='+BLIZZ_API_KEY)
 AH_DUMP = None
-AH_DUMMP_FILE = 'AH_DUMP.json'
-FISH_VAL_FILE = 'fish_val.json'
+AH_DUMMP_FILE = 'jsonFiles/AH_DUMP.json'
+FISH_VAL_FILE = 'jsonFiles/fish_val.json'
+FISH_MIN_VAL_FILE = 'jsonFiles/fish_min.json'
 LU_md5 = None
 
 
@@ -120,8 +121,76 @@ def fetch_avg_price(ah_item):
 	avg_val = (i_val/item_count)
 	avg_val_gold = (avg_val/10000)
 	return str(avg_val_gold)
+#Get the lowest price of item from 
+#TODO write this to json file (with max value and date)
+def get_min_item_val(item_number):
+	print("Getting min price for item")
+	i_count = 0
+	min_price = None
+	i_list = []
+	with open(AH_DUMMP_FILE, 'r') as f:
+		ah_json = json.load(f)
+		#verify item exists
+		for auc in ah_json['auctions']:
+			if auc['item'] == item_number:
+				i_count += 1
+		print(i_count)
+		if i_count >= 1:
+			#Search through file for lowest value
+			with open(AH_DUMMP_FILE, 'r') as f:
+				ah_json = json.load(f)
+				for auc in ah_json['auctions']:
+					if auc['item'] == item_number:
+						i_list.append(auc['buyout'])
+				min_price = min(i_list)
+				min_price_gold = (min_price/10000)
+			return str(min_price_gold)
+		else:
+			return "not listed"
+#TODO read in file of monitored items
+@app.route('/fish_monitored_values_write')
+def fish_monitored_values_write():
+	monitored_items = 6657
+	fish_avg_val_write(monitored_items)
+	fish_min_val_write(monitored_items)
+	return "success"	
 
-#Create json file with avg val and date created
+def fish_avg_val_write(a_item):
+	avg_val = None
+	today = datetime.datetime.now()
+	time = today.strftime('%d-%I%p')
+	#Item is currently Savory Delights
+	avg_val = fish_avg_val(a_item)
+	print ('['+time+']'+'['+avg_val+']')
+	print("Reading file")
+	with open(FISH_VAL_FILE, mode='r') as feedsjson:
+		feeds = json.load(feedsjson)
+	print("Writing to file")
+	with open(FISH_VAL_FILE, mode='w') as feedsjson:
+		entry = {"val":avg_val, "time":str(time)}
+		feeds.append(entry)
+		json.dump(feeds, feedsjson)
+	return "success"
+	
+def fish_min_val_write(m_item):
+	min_val = None
+	today = datetime.datetime.now()
+	time = today.strftime('%d-%I%p')
+	#Item is currently Savory Delights
+	min_val = get_min_item_val(m_item)
+	print ('['+time+']'+'['+min_val+']')
+	print("Reading file")
+	with open(FISH_MIN_VAL_FILE, mode='r') as feedsjson:
+		feeds = json.load(feedsjson)
+	print("Writing to file")
+	with open(FISH_MIN_VAL_FILE, mode='w') as feedsjson:
+		entry = {"fish_value":min_val, "time_checked":str(time)}
+		feeds.append(entry)
+		json.dump(feeds, feedsjson)
+	return "success"
+
+
+#Legacy
 @app.route('/fish_avg_val_write')
 def write_avg_fish_val():
 	avg_val = None
@@ -146,6 +215,24 @@ def test_json():
 	with open(FISH_VAL_FILE, mode='r') as feedsjson:
 		feeds = json.load(feedsjson)
 	return jsonify(feeds)
+
+#Load local avg json file
+@app.route('/fish_avg.json')
+def fish_avg():
+	with open(FISH_VAL_FILE, mode='r') as a_json:
+		#print("a_json: " +a_json)
+		feed_a = json.load(a_json)
+		#print("feed_a: " +str(feed_a))
+	return jsonify(feed_a)
+
+#Load local json file
+@app.route('/fish_min.json')
+def fish_min():
+	with open(FISH_MIN_VAL_FILE, mode='r') as m_json:
+		feed_f = json.load(m_json)
+		#feed_file = to_json(feed_file)
+		#print("feed_f: " +str(feed_f))
+	return jsonify(feed_f)
 
 #Seach users and build list of their listed items
 def search_username(uname):

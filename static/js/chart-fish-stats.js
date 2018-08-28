@@ -8,41 +8,53 @@ Chart.defaults.global.defaultFontColor = '#292b2c';
 
 var time_list = ""
 var price_list = "Test_date,"
-var price_list_array =[06,]
+var avg_price_list_array =[1]
+var min_price_list_array =[1]
 var ctx = document.getElementById("myAreaChart");
 
-//On startup
-$.getJSON("test.json", function(json) {
+//Get AVG fish items
+$.getJSON("fish_avg.json", function(json1) {
 
-    console.log(json); // this will show the info it in firebug console
-    get_dates_and_val(json)
-    addData(myLineChart,time_list,price_list)
+    console.log(json1); // this will show the info it in firebug console
+    //get_dates_and_val(json1)
+    for (i = 0; i < json1.length; i++){
+
+    //update graph
+      addData_avg(myLineChart,json1[i].time,json1[i].val)
+    }
     
 });
 
-function init(){
-  console.log(time_list);
-  console.log(price);
-  
-}
+$.getJSON("fish_min.json", function(json2) {
+
+    console.log(json2); // this will show the info it in firebug console
+    //get_dates_and_val(json2)
+    //addData(myLineChart,time_list,price_list)
+    for (i = 0; i < json2.length; i++){
+
+    //update graph
+      addData_min(myLineChart,json2[i].time,json2[i].val)
+    }
+    
+});
 
 
 function get_dates_and_val(JSON){
 
-  for (i = 0; i < JSON.length; i++){
-  //price_list = ''+JSON[i].val + ' ,'
-  //time_list = ',"'+JSON[i].time + '" '
-  //update graph
-    addData(myLineChart,JSON[i].time,JSON[i].val)
-  }
-  
-
 }
 
-
-function addData(chart, label, data) {
+function addData_avg(chart, label, data) {
+    console.log("updating avg")
     chart.data.labels.push(label);
-    chart.data.datasets.forEach((dataset) => {
+    chart.data.datasets[0] => {
+        dataset.data.push(data);
+    });
+    chart.update();
+}
+function addData_min(chart, label, data) {
+    console.log("updating min")    
+    chart.data.labels.push(label);
+    chart.data.datasets[1] => {
         dataset.data.push(data);
     });
     chart.update();
@@ -65,7 +77,21 @@ var myLineChart = new Chart(ctx, {
         pointHoverBackgroundColor: "rgba(2,117,216,1)",
         pointHitRadius: 50,
         pointBorderWidth: 2,
-        data: [price_list_array],
+        data: [avg_price_list_array],
+      },
+      {
+        label: "Min Gold Price",
+        lineTension: 0.3,
+        backgroundColor: "rgba(2,117,216,0.2)",
+        borderColor: "rgba(2,117,216,1)",
+        pointRadius: 5,
+        pointBackgroundColor: "rgba(2,117,216,1)",
+        pointBorderColor: "rgba(255,255,255,0.8)",
+        pointHoverRadius: 5,
+        pointHoverBackgroundColor: "rgba(2,117,216,1)",
+        pointHitRadius: 50,
+        pointBorderWidth: 2,
+        data: [min_price_list_array],
       }],
     },
     options: {
