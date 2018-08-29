@@ -125,6 +125,7 @@ def fetch_avg_price(ah_item):
 #TODO write this to json file (with max value and date)
 def get_min_item_val(item_number):
 	print("Getting min price for item")
+	i_val = 0
 	i_count = 0
 	min_price = None
 	i_list = []
@@ -141,7 +142,12 @@ def get_min_item_val(item_number):
 				ah_json = json.load(f)
 				for auc in ah_json['auctions']:
 					if auc['item'] == item_number:
-						i_list.append(auc['buyout'])
+						if auc['quantity'] > 1:
+							i_val += auc['buyout'] / auc['quantity']
+							i_list.append(i_val)
+						elif auc['quantity'] == 1:
+							i_val += auc['buyout']
+							i_list.append(i_val)
 				min_price = min(i_list)
 				min_price_gold = (min_price/10000)
 			return str(min_price_gold)
@@ -184,7 +190,7 @@ def fish_min_val_write(m_item):
 		feeds = json.load(feedsjson)
 	print("Writing to file")
 	with open(FISH_MIN_VAL_FILE, mode='w') as feedsjson:
-		entry = {"fish_value":min_val, "time_checked":str(time)}
+		entry = {"val":min_val, "time":str(time)}
 		feeds.append(entry)
 		json.dump(feeds, feedsjson)
 	return "success"
