@@ -60,7 +60,7 @@ def update_AH():
 	if AH_LU != None:
 		print ("Updated file")
 		print (AH_DUMP)
-		return "success"
+		return render_template('index.html')
 	else:
 		return "Not quite"
 
@@ -159,7 +159,7 @@ def fish_monitored_values_write():
 	monitored_items = 6657
 	fish_avg_val_write(monitored_items)
 	fish_min_val_write(monitored_items)
-	return "success"	
+	return render_template('index.html')	
 
 def fish_avg_val_write(a_item):
 	avg_val = None
@@ -173,7 +173,7 @@ def fish_avg_val_write(a_item):
 		feeds = json.load(feedsjson)
 	print("Writing to file")
 	with open(FISH_VAL_FILE, mode='w') as feedsjson:
-		entry = {"val":avg_val, "time":str(time)}
+		entry = {"item_id":a_item,"val":avg_val, "time":str(time)}
 		feeds.append(entry)
 		json.dump(feeds, feedsjson)
 	return "success"
@@ -190,7 +190,7 @@ def fish_min_val_write(m_item):
 		feeds = json.load(feedsjson)
 	print("Writing to file")
 	with open(FISH_MIN_VAL_FILE, mode='w') as feedsjson:
-		entry = {"val":min_val, "time":str(time)}
+		entry = {"item_id":m_item,"val":min_val, "time":str(time)}
 		feeds.append(entry)
 		json.dump(feeds, feedsjson)
 	return "success"
