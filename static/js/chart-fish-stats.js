@@ -11,23 +11,39 @@ var avg_price_list = []
 var min_price_list = []
 var price_list_array =[]
 var ctx = document.getElementById("myAreaChart");
-var json_loaded = 0
-var var myLineChart
-init();
-render_chart(time_list,min_price_list,avg_price_list);
-myLineChart.update();
+//var var myLineChart = {}
+//init();
+//myLineChart.update();
 //On startup
+
+$(document).ready(function () {
+
+    load_json();
+    lineChart = render_chart(time_list,min_price_list,avg_price_list);
+    lineChart.resize();
+    $(document).on('shown.bs.tab', 'a[data-toggle="tab"]', function (e) {
+        console.log("tab changed");
+    });
+});
+
+/*
 function init(){
   load_json();
 
-  console.log(avg_price_list);
-  console.log(min_price_list);
-  console.log(time_list);
   //Render
-  
+  render_chart(time_list,min_price_list,avg_price_list);
   //myLineChart.update();
-  
+  //chart.update();
+  //myLineChart.update();
 }
+  $('a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
+    var ev = document.createEvent('Event');
+    ev.initEvent('resize', true, true);
+    window.dispatchEvent(ev);
+  });
+*/
+
+
 
 function load_json(){
   $.getJSON("fish_min.json", function(JSON) {
@@ -53,15 +69,6 @@ function load_json(){
   });
 }
 
-/*
-function addData(chart, label, data) {
-    chart.data.labels.push(label);
-    chart.data.datasets.forEach((dataset) => {
-        dataset.data.push(data);
-    });
-    chart.update();
-}
-*/
 function render_chart(time_l,min_l,avg_l){
   var myLineChart = new Chart(ctx, {
       type: 'line',
@@ -90,7 +97,7 @@ function render_chart(time_l,min_l,avg_l){
           pointBackgroundColor: "rgba(2,117,216,1)",
           pointBorderColor: "rgba(255,255,255,0.8)",
           pointHoverRadius: 5,
-          pointHoverBackgroundColor: "rgba(2,117,216,1)",
+          //pointHoverBackgroundColor: "rgba(2,117,216,1)",
           pointHitRadius: 50,
           pointBorderWidth: 2,
           data: min_l,
@@ -105,15 +112,8 @@ function render_chart(time_l,min_l,avg_l){
             gridLines: {
               display: false
             },
-            ticks: {
-              maxTicksLimit: 7
-            }
           }],
           yAxes: [{
-            ticks: {
-              min: 0,
-              maxTicksLimit: 5
-            },
             gridLines: {
               color: "rgba(0, 0, 0, .125)",
             }
@@ -124,4 +124,5 @@ function render_chart(time_l,min_l,avg_l){
         }
       }
     });
+  return myLineChart;
 }
