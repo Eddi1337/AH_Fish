@@ -143,10 +143,10 @@ def get_min_item_val(item_number):
 				for auc in ah_json['auctions']:
 					if auc['item'] == item_number:
 						if auc['quantity'] > 1:
-							i_val += auc['buyout'] / auc['quantity']
+							i_val = auc['buyout'] / auc['quantity']
 							i_list.append(i_val)
 						elif auc['quantity'] == 1:
-							i_val += auc['buyout']
+							i_val = auc['buyout']
 							i_list.append(i_val)
 				min_price = min(i_list)
 				min_price_gold = (min_price/10000)

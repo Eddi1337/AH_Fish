@@ -11,12 +11,25 @@ var avg_price_list = []
 var min_price_list = []
 var price_list_array =[]
 var ctx = document.getElementById("myAreaChart");
-
-
+var json_loaded = 0
+var var myLineChart
 init();
-
+render_chart(time_list,min_price_list,avg_price_list);
+myLineChart.update();
 //On startup
 function init(){
+  load_json();
+
+  console.log(avg_price_list);
+  console.log(min_price_list);
+  console.log(time_list);
+  //Render
+  
+  //myLineChart.update();
+  
+}
+
+function load_json(){
   $.getJSON("fish_min.json", function(JSON) {
     console.log(JSON); // this will show the info it in firebug console
     //get_dates_and_val(json2)
@@ -38,25 +51,9 @@ function init(){
       //update graph
     }
   });
-
-
-  render_chart(time_list,min_price_list,avg_price_list)
 }
 
-
-function get_dates_and_val(JSON){
-  for (i = 0; i < JSON.length; i++){
-    print(price_list = ''+JSON[i].val + ' ,')
-    time_list = ',"'+JSON[i].time + '" '
-  //update graph
-    print(JSON[i])
-    addData(myLineChart,JSON[i].time_checked,JSON[i].fish_value)
-  }
-  
-
-}
-
-
+/*
 function addData(chart, label, data) {
     chart.data.labels.push(label);
     chart.data.datasets.forEach((dataset) => {
@@ -64,7 +61,7 @@ function addData(chart, label, data) {
     });
     chart.update();
 }
-
+*/
 function render_chart(time_l,min_l,avg_l){
   var myLineChart = new Chart(ctx, {
       type: 'line',
