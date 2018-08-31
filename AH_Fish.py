@@ -1,3 +1,4 @@
+import os
 import json
 import requests
 import hashlib
@@ -6,22 +7,26 @@ import schedule
 import time
 import datetime
 from flask import Flask
-from flask import request, make_response, redirect, render_template, url_for, abort, jsonify
+from flask import request, make_response, redirect, render_template, url_for, abort, jsonify,session,flash
 app = Flask(__name__)
+
+AH_DUMP = None
+LU_md5 = None
 
 BLIZZ_API_KEY = 'fj6cra6e62y46crahyxpmf2ky53bn8ks'
 AH_URL = ('https://eu.api.battle.net/wow/auction/data/Aerie%20peak?locale=en_GB&apikey='+BLIZZ_API_KEY)
-AH_DUMP = None
+#json files (can never have enough jsons)
 AH_DUMMP_FILE = 'jsonFiles/AH_DUMP.json'
+VAL_FILE = 'jsonFiles/item_vals.json'
 FISH_VAL_FILE = 'jsonFiles/fish_val.json'
 FISH_MIN_VAL_FILE = 'jsonFiles/fish_min.json'
-LU_md5 = None
-
+MONITORED_TIEMS = 'jsonFiles/monitored.json'
+ACCOUNTS_FILE = 'jsonFiles/accounts.json'
 
 @app.route("/")
 @app.route("/index")
 @app.route("/index.html")
-def hello():
+def home():
 	return render_template('index.html')
 
 @app.errorhandler(404)
@@ -30,18 +35,15 @@ def page_not_found(e):
 
 @app.route('/update_AH')
 def update_AH():
-
 	#Get lastest AH listings
 	print ("Geting list of fish")
 	ah_reponse = requests.get(AH_URL)
 	ah_json = ah_reponse.json()
-
 	#Aiisgn json to vars
 	AH_LU = ah_json['files'][0]['lastModified']
 	AH_DUMP_URL = ah_json['files'][0]['url']
 	print(AH_LU)
 	print(AH_DUMP_URL)
-
 	#Check if the last updated time has changed before redownloading listings
 	new_md5 = md5(str(AH_LU))
 	if LU_md5 == None or new_md5 != AH_LU:
@@ -53,16 +55,65 @@ def update_AH():
 		with open(AH_DUMMP_FILE, 'w') as f:
 			json.dump(ah_dump_json, f)
 		print("Updaing JSON AH file")
-
 	#redirect to page to pass
-	#TODO
-
 	if AH_LU != None:
 		print ("Updated file")
 		print (AH_DUMP)
 		return render_template('index.html')
 	else:
 		return "Not quite"
+
+#########################
+#Login PLEASE IGNORE D: WIP
+#########################
+app.secret_key = os.urandom(12)
+@app.route('/login')
+def login():
+    if not session.get('logged_in'):
+        return render_template('login.html')
+    else:
+        return "Hello Boss!"
+
+@app.route('/verifylogin', methods=['POST'])
+def do_admin_login():
+	request_user_pass = request.form['password']
+	request_user = request.form['username']
+	with open(ACCOUNTS_FILE, mode='r') as f:
+		feeds = json.load(f)
+		for acc in feeds['accounts']:
+			print("request_user " +request_user)
+			print("request_user_pass " +request_user_pass)
+			print("acc['user'] " +acc['user'])
+			print("acc['pass'] " +acc['pass'])						
+			if str(request_user_pass) == str(acc['pass']) and str(request_user) == str(acc['user']):
+				session['logged_in'] = True
+				print("logging in")
+				return home()
+		return "Wrong pass"
+
+#########################
+#JSON endponts
+#########################
+#Load local avg json file
+@app.route('/fish_avg.json')
+def fish_avg():
+	with open(FISH_VAL_FILE, mode='r') as a_json:
+		feed_a = json.load(a_json)
+	return jsonify(feed_a)
+
+#Load local json file
+@app.route('/fish_min.json')
+def fish_min():
+	with open(FISH_MIN_VAL_FILE, mode='r') as m_json:
+		feed_f = json.load(m_json)
+	return jsonify(feed_f)
+
+#Load local json file
+@app.route('/monitored.json')
+def monitored():
+	with open(MONITORED_TIEMS, mode='r') as m_json:
+		feed_f = json.load(m_json)
+	return jsonify(feed_f)	
 
 @app.route('/find_user', methods=['GET', 'POST'])
 def find_user():
@@ -85,7 +136,6 @@ def fish_count():
 				print (auc['item'])
 	return str(f_count)
 
-
 #Get the average price of the fish
 @app.route('/fish_avg_val')
 def fish_avg_val(fish_id):
@@ -100,7 +150,6 @@ def fish_avg_val(fish_id):
 				avg_price = fetch_avg_price(auc['item'])
 				return avg_price
 		return "not listed"
-
 #Get avg price for an item //TODO optional return in gold
 def fetch_avg_price(ah_item):
 	print("Getting avg price for item")
@@ -153,6 +202,53 @@ def get_min_item_val(item_number):
 			return str(min_price_gold)
 		else:
 			return "not listed"
+
+@app.route('/write_monitored_values')
+def write_monitored_values():
+	with open(ACCOUNTS_FILE, mode='r') as acc_json:
+		feed_a = json.load(acc_json)
+		for acc in feed_a['accounts']:
+			if acc['items'] > 0:
+				for item in acc['items']:
+					print("Adding item " + str(item))
+					monitored_val_write(item)
+			else:
+				return "No monitored items"
+		return "Success"
+	
+
+@app.route('/watched')
+def watched():
+	list_of_items = []
+	with open(ACCOUNTS_FILE, mode='r') as acc_json:
+		feed_a = json.load(acc_json)
+		for acc in feed_a['accounts']:
+			if acc['items'] > 0:
+				for item in acc['items']:
+					list_of_items.append(item)
+	print(str(list_of_items))
+	return render_template('watched.html', list_of_items=list_of_items)
+
+def monitored_val_write(a_item):
+	avg_val = None
+	today = datetime.datetime.now()
+	time = today.strftime('%d-%H:%M')
+	avg_val = fish_avg_val(a_item)
+	min_val = get_min_item_val(a_item)
+
+	print ('['+time+']'+'['+avg_val+']')
+	print("Reading file")
+	with open(MONITORED_TIEMS, mode='r') as feedsjson:
+		feeds = json.load(feedsjson)
+	print("Writing to file")
+	with open(MONITORED_TIEMS, mode='w') as feedsjson:
+		entry = {"item_id":a_item,"avg_val":avg_val,"min_val":min_val,"time":str(time)}
+		feeds.append(entry)
+		json.dump(feeds, feedsjson)
+	return "success"
+#####################################
+#LEGACY
+#####################################
 #TODO read in file of monitored items
 @app.route('/fish_monitored_values_write')
 def fish_monitored_values_write():
@@ -194,8 +290,6 @@ def fish_min_val_write(m_item):
 		feeds.append(entry)
 		json.dump(feeds, feedsjson)
 	return "success"
-
-
 #Legacy
 @app.route('/fish_avg_val_write')
 def write_avg_fish_val():
@@ -222,23 +316,6 @@ def test_json():
 		feeds = json.load(feedsjson)
 	return jsonify(feeds)
 
-#Load local avg json file
-@app.route('/fish_avg.json')
-def fish_avg():
-	with open(FISH_VAL_FILE, mode='r') as a_json:
-		#print("a_json: " +a_json)
-		feed_a = json.load(a_json)
-		#print("feed_a: " +str(feed_a))
-	return jsonify(feed_a)
-
-#Load local json file
-@app.route('/fish_min.json')
-def fish_min():
-	with open(FISH_MIN_VAL_FILE, mode='r') as m_json:
-		feed_f = json.load(m_json)
-		#feed_file = to_json(feed_file)
-		#print("feed_f: " +str(feed_f))
-	return jsonify(feed_f)
 
 #Seach users and build list of their listed items
 def search_username(uname):

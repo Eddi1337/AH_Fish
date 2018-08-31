@@ -8,39 +8,28 @@ var avg_price_list = []
 var min_price_list = []
 var price_list_array =[]
 var ctx = document.getElementById("myAreaChart");
-
+console.log({{item}});
 init()
 
 //On startup
 function init(){
+  //Get list of monitored items
+  $.getJSON("monitored.json", function(JSON) {
+    console.log(JSON);     
+    for (i = 0; i < JSON.length; i++){
+      if (JSON.[i].item_id == {{item}}{
+        avg_price_list.push(JSON[i].val)
+        {{item}}.data.datasets[0].data[i] = JSON[i].val
+        //update graph
+        myLineChart.update()
+      }
+    }
+  });
   load_json();
 }
 
-function load_json(){
-  //Get Min fish items and add them to line graph
-  $.getJSON("fish_min.json", function(JSON) {
-    console.log(JSON); // this will show the info it in firebug console
-    for (i = 0; i < JSON.length; i++){
-      
-      time_list.push(JSON[i].time)
-      myLineChart.data.datasets[1].data[i] = JSON[i].val
-      //update graph
-      myLineChart.update()
-    }
-  });
-  //Get AVG fish items and add them to line graph
-  $.getJSON("fish_avg.json", function(JSON) {
-    console.log(JSON);     
-    for (i = 0; i < JSON.length; i++){
-      avg_price_list.push(JSON[i].val)
-      myLineChart.data.datasets[0].data[i] = JSON[i].val
-      //update graph
-      myLineChart.update()
-    }
-  });
-}
 
-var myLineChart = new Chart(ctx, {
+var {item} = new Chart(ctx, {
     type: 'line',
     data: {
       labels: time_list,
@@ -101,3 +90,4 @@ var myLineChart = new Chart(ctx, {
       }
     }
 });
+{% endfor %}
