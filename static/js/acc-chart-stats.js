@@ -55,7 +55,7 @@ function create_charts(item_id, chart_id){
   var item_id = new Chart(chart_id, {
       type: 'line',
       data: {
-        labels: time_list,
+        //labels: time_list,
         datasets: [{
           label: "Avg Gold Price",
           lineTension: 0.3,
