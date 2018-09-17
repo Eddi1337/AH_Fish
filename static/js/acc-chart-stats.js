@@ -29,26 +29,28 @@ function init(passed_item_id){
     for (var x in JSON){    
       
       if (JSON[x].item_id == passed_item_id[i]){
-
+        /* TODO only show last 10 entries*/
+        if (chart_list[passed_item_id[i]].data.labels.length >= 10){
+          chart_list[passed_item_id[i]].data.labels.shift()
+        } 
+        if (chart_list[passed_item_id[i]].data.datasets[0].data.length >= 10){
+          chart_list[passed_item_id[i]].data.datasets[0].data.shift()
+        }
+        if (chart_list[passed_item_id[i]].data.datasets[1].data.length >= 10){
+          chart_list[passed_item_id[i]].data.datasets[1].data.shift()
+        }
+        //TODO Change to use a date opbject and stringify it
+        //date = new Date(JSON[x].time)
+        //console.log(date)           
         chart_list[passed_item_id[i]].data.labels.push(JSON[x].time);
-        //console.log("Adding time " +JSON[x].time + " for "+ passed_item_id[i]);
         chart_list[passed_item_id[i]].data.datasets[0].data.push(JSON[x].avg_val);
-        //console.log("Adding avg " +JSON[x].avg_val);
         chart_list[passed_item_id[i]].data.datasets[1].data.push(JSON[x].min_val);
-        //chart_list[passed_item_id[i]].chart.reset();
         chart_list[passed_item_id[i]].chart.update();
         }
+         
       }
     }
-  //chart_list[6557].chart.data.datasets[1].data.push(14);
-  console.log(chart_list)
-  for (var x in chart_list){
-
-    console.log(passed_item_id[i])
-    //chart_list[passed_item_id[i]].chart.update();
-  }
   });
-
 }
 
 function create_charts(item_id, chart_id){
@@ -95,7 +97,7 @@ function create_charts(item_id, chart_id){
               display: false
             },
             ticks: {
-              maxTicksLimit: 7
+              maxTicksLimit: 100
             }
           }],
           yAxes: [{

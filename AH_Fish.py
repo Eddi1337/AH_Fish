@@ -14,7 +14,9 @@ AH_DUMP = None
 LU_md5 = None
 
 BLIZZ_API_KEY = 'fj6cra6e62y46crahyxpmf2ky53bn8ks'
+#Only for Aerie Peak
 AH_URL = ('https://eu.api.battle.net/wow/auction/data/Aerie%20peak?locale=en_GB&apikey='+BLIZZ_API_KEY)
+ITEM_API = ('https://eu.api.battle.net/wow/item/')
 #json files (can never have enough jsons)
 AH_DUMMP_FILE = 'jsonFiles/AH_DUMP.json'
 VAL_FILE = 'jsonFiles/item_vals.json'
@@ -27,7 +29,11 @@ ACCOUNTS_FILE = 'jsonFiles/accounts.json'
 @app.route("/index")
 @app.route("/index.html")
 def home():
-	return render_template('index.html')
+    if not session.get('logged_in'):
+        return render_template('index.html')
+    else:
+        print(session['username'])
+	return show_account_listings(session['username'])
 
 @app.errorhandler(404)
 def page_not_found(e):
@@ -64,7 +70,7 @@ def update_AH():
 		return "Not quite"
 
 #########################
-#Login PLEASE IGNORE D: WIP
+#Login 
 #########################
 app.secret_key = os.urandom(12)
 @app.route('/login')
@@ -80,16 +86,33 @@ def do_admin_login():
 	request_user = request.form['username']
 	with open(ACCOUNTS_FILE, mode='r') as f:
 		feeds = json.load(f)
-		for acc in feeds['accounts']:
-			print("request_user " +request_user)
-			print("request_user_pass " +request_user_pass)
-			print("acc['user'] " +acc['user'])
-			print("acc['pass'] " +acc['pass'])						
+		for acc in feeds['accounts']:					
 			if str(request_user_pass) == str(acc['pass']) and str(request_user) == str(acc['user']):
 				session['logged_in'] = True
 				print("logging in")
-				return home()
+				session['username'] = acc['user']
+				print(acc)
+				return show_account_listings(acc['user'])
 		return "Wrong pass"
+
+def show_account_listings(account):
+	list_of_items = []
+	list_of_names = {}
+	with open(ACCOUNTS_FILE, mode='r') as acc_json:
+		feed_a = json.load(acc_json)
+		for acc in feed_a['accounts']:
+			if acc['items'] > 0:
+				if acc['user'] == account:
+					for item in acc['items']:
+						list_of_items.append(item)
+						list_of_names[item] = get_item_name(item)
+	#print(str(list_of_items))
+	return render_template('watched.html', list_of_items=list_of_items, list_of_names=list_of_names)
+
+@app.route('/logout')
+def logout():
+    session['logged_in'] = False
+    return render_template('login.html')
 
 #########################
 #JSON endponts
@@ -121,6 +144,15 @@ def find_user():
 	name = request.form['search_name']
 	listing = search_username(name)
 	return str(listing)
+
+#TODO complete page to add items to an account
+@app.route('/add_items')
+def add_items():
+	if session.get('logged_in') == False:
+		return "You need to be logeed in to use this fool"
+	else:
+		listings = show_account_listings(session['username'])
+		return listings
 
 #Count number of fish (needs to be changes to it can be passed an ID)
 @app.route('/fish_count')
@@ -214,20 +246,21 @@ def write_monitored_values():
 					monitored_val_write(item)
 			else:
 				return "No monitored items"
-		return "Success"
+		return redirect("/watched")
 	
-
 @app.route('/watched')
 def watched():
 	list_of_items = []
+	list_of_names = {}
 	with open(ACCOUNTS_FILE, mode='r') as acc_json:
 		feed_a = json.load(acc_json)
 		for acc in feed_a['accounts']:
 			if acc['items'] > 0:
 				for item in acc['items']:
 					list_of_items.append(item)
-	print(str(list_of_items))
-	return render_template('watched.html', list_of_items=list_of_items)
+					list_of_names[item] = get_item_name(item)
+	print(str(list_of_names))
+	return render_template('watched.html', list_of_items=list_of_items, list_of_names=list_of_names)
 
 def monitored_val_write(a_item):
 	avg_val = None
@@ -330,13 +363,12 @@ def search_username(uname):
 			if auc['owner'] == uname:
 				uname_count += 1
 				AH_items.append(auc['owner'])
-				AH_items.append(auc['item'])
-				AH_items.append(auc['buyout'])
-				User_Iist_Item_details.append(auc['item'])
-				AH_items.append(auc['ownerRealm'])	
+				#AH_items.append(auc['item'])
+				#AH_items.append(auc['buyout'])
+				#User_Iist_Item_details.append(auc['item'])
+				#AH_items.append(auc['ownerRealm'])	
 #		for i in User_Iist_Item_details:
 #			Listed_Items.append(get_item_details(i))
-
 		if uname_count != 0: 
 			return AH_items	
 		else:
@@ -349,6 +381,16 @@ def get_item_details(item):
 	item_reponse = requests.get(ITEM_URL)
 	item_json = item_reponse.json()
 	return item_json
+
+
+def get_item_name(item):
+	print("ITEM number " + str(item))
+	ITEM_URL = (ITEM_API+str(item)+'?locale=en_GB&apikey='+BLIZZ_API_KEY)
+	item_reponse = requests.get(ITEM_URL)
+	#print(ITEM_URL)
+	item_json = item_reponse.json()
+	#print(item_json)
+	return str(item_json['name'])
 
 #Used to create hash
 def md5(fname):
