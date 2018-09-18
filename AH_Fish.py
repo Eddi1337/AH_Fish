@@ -95,6 +95,7 @@ def do_admin_login():
 				return show_account_listings(acc['user'])
 		return "Wrong pass"
 
+
 def show_account_listings(account):
 	list_of_items = []
 	list_of_names = {}
@@ -106,13 +107,14 @@ def show_account_listings(account):
 					for item in acc['items']:
 						list_of_items.append(item)
 						list_of_names[item] = get_item_name(item)
+						session['items'] = list_of_items
 	#print(str(list_of_items))
 	return render_template('watched.html', list_of_items=list_of_items, list_of_names=list_of_names)
 
 @app.route('/logout')
 def logout():
     session['logged_in'] = False
-    return render_template('login.html')
+    return home()
 
 #########################
 #JSON endponts
@@ -145,14 +147,30 @@ def find_user():
 	listing = search_username(name)
 	return str(listing)
 
-#TODO complete page to add items to an account
-@app.route('/add_items')
-def add_items():
-	if session.get('logged_in') == False:
-		return "You need to be logeed in to use this fool"
-	else:
-		listings = show_account_listings(session['username'])
-		return listings
+#########################
+#Updating account watch lists
+#########################
+@app.route('/add_item', methods=['POST'])
+def add_item():
+	print(request.form['item_id'])
+	item_a = request.form['item_id']
+	try:
+		if session['logged_in'] != True:
+			return "You need to be logeed in to use this fool"
+		else:
+			with open(ACCOUNTS_FILE, mode='r') as acc_json:
+				acc_feed = json.load(acc_json)
+			for acc in acc_feed['accounts']:
+				if acc['user'] == session['username']:
+					print['items']
+					acc['items'].append(int(item_a))
+
+			with open(ACCOUNTS_FILE, mode='w') as feedsjson:
+				json.dump(acc_feed, feedsjson)
+
+			return "added"
+	except ValueError:
+   		return "That's not an number!"
 
 #Count number of fish (needs to be changes to it can be passed an ID)
 @app.route('/fish_count')
@@ -223,12 +241,16 @@ def get_min_item_val(item_number):
 				ah_json = json.load(f)
 				for auc in ah_json['auctions']:
 					if auc['item'] == item_number:
+						if auc['item'] == 152512:
+							print(auc['buyout'])
 						if auc['quantity'] > 1:
-							i_val = auc['buyout'] / auc['quantity']
-							i_list.append(i_val)
+							if auc['buyout'] != 0:
+								i_val = auc['buyout'] / auc['quantity']
+								i_list.append(i_val)
 						elif auc['quantity'] == 1:
-							i_val = auc['buyout']
-							i_list.append(i_val)
+							if auc['buyout'] != 0:
+								i_val = auc['buyout']
+								i_list.append(i_val)
 				min_price = min(i_list)
 				min_price_gold = (min_price/10000)
 			return str(min_price_gold)
@@ -248,7 +270,7 @@ def write_monitored_values():
 				return "No monitored items"
 		return redirect("/watched")
 	
-@app.route('/watched')
+@app.route('/all_watched')
 def watched():
 	list_of_items = []
 	list_of_names = {}
@@ -259,7 +281,9 @@ def watched():
 				for item in acc['items']:
 					list_of_items.append(item)
 					list_of_names[item] = get_item_name(item)
-	print(str(list_of_names))
+	#print(str(list_of_names))
+	
+	print(session['items'])
 	return render_template('watched.html', list_of_items=list_of_items, list_of_names=list_of_names)
 
 def monitored_val_write(a_item):

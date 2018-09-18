@@ -6,6 +6,7 @@
       <span>Dashboard</span>
     </a>
   </li>
+  {% if session['logged_in'] %}
   <li class="nav-item dropdown">
     <a class="nav-link dropdown-toggle" href="#" id="pagesDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
       <i class="fas fa-fw fa-table"></i>
@@ -14,20 +15,25 @@
     <div class="dropdown-menu" aria-labelledby="pagesDropdown">
       <h6 class="dropdown-header">Monitored Items</h6>
       <div class="dropdown-divider"></div>
-      <span class="dropdown-item">Item one</span>
+      
+        {% for item in session['items'] %}
+        <span class="dropdown-item">{{item}}</span>
+        {%endfor %}
+      
       <div class="dropdown-divider"></div>
       <form action="/add_item" method="post" class="d-none d-md-inline-block form-inline ml-auto mr-0 mr-md-3 my-2 my-md-0">
         <div class="dropdown-item input-group">
-          <input name="item_name" type="text" class="form-control" placeholder="Search your listings..." aria-label="Search" aria-describedby="basic-addon2">
+          <input name="item_id" type="number" class="form-control" placeholder="Add item" aria-label="add item" aria-describedby="basic-addon2" style="-webkit-appearance: none">
           <div class="input-group-append">
             <button type="submit" class="btn btn-primary" type="button">
-              <i class="fas fa-search"></i>
+              <i class="fas fa-plus-square"></i>
             </button>
           </div>
         </div>
       </form>
     </div>
   </li>
+  {% endif %}
   <li class="nav-item">
     <a class="nav-link" href="/update_AH">
       <i class="fas fa-fw fa-chart-area"></i>

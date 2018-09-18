@@ -15,9 +15,8 @@
     {% include 'include/sidebar.html' %}  
 
       <div id="content-wrapper">
-
+        {% if session['logged_in'] %}
         <div class="container-fluid">
-
           {% for item in list_of_names %}
           <!-- Area Chart Example-->
           <div class="card mb-3">
@@ -31,7 +30,10 @@
           {% else %}
           <h1> No items currently listed </h1>
           {% endfor %}
-
+          {% if session['logged_in'] %}
+          <!-- form with entry for adding/removing item to account -->
+          {% endif %}
+        {% endif %}
         </div>
         <!-- /.container-fluid -->
 
