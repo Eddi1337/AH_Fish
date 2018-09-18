@@ -113,9 +113,10 @@ def show_account_listings(account):
 
 @app.route('/logout')
 def logout():
-    session['logged_in'] = False
-    return home()
-
+   # remove the username from the session if it is there
+   session.pop('username', None)
+   return redirect(url_for('index'))
+   
 #########################
 #JSON endponts
 #########################
@@ -155,7 +156,7 @@ def add_item():
 	print(request.form['item_id'])
 	item_a = request.form['item_id']
 	try:
-		if session['logged_in'] != True:
+		if not session.get('logged_in'):
 			return "You need to be logeed in to use this fool"
 		else:
 			with open(ACCOUNTS_FILE, mode='r') as acc_json:
@@ -241,8 +242,6 @@ def get_min_item_val(item_number):
 				ah_json = json.load(f)
 				for auc in ah_json['auctions']:
 					if auc['item'] == item_number:
-						if auc['item'] == 152512:
-							print(auc['buyout'])
 						if auc['quantity'] > 1:
 							if auc['buyout'] != 0:
 								i_val = auc['buyout'] / auc['quantity']
