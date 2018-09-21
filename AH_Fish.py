@@ -24,15 +24,18 @@ FISH_VAL_FILE = 'jsonFiles/fish_val.json'
 FISH_MIN_VAL_FILE = 'jsonFiles/fish_min.json'
 MONITORED_TIEMS = 'jsonFiles/monitored.json'
 ACCOUNTS_FILE = 'jsonFiles/accounts.json'
+NOTIFICATIONS_FILE = 'jsonFiles/notifications.json'
 
 @app.route("/")
 @app.route("/index")
 @app.route("/index.html")
+@app.route("/index.php")
 def home():
-    if not session.get('logged_in'):
-        return render_template('index.html')
-    else:
-        print(session['username'])
+	print(session.get('logged_in'))
+	if not session.get('logged_in'):
+		return render_template('index.html')
+	else:
+		print(session['username'])
 	return show_account_listings(session['username'])
 
 @app.errorhandler(404)
@@ -41,6 +44,7 @@ def page_not_found(e):
 
 @app.route('/update_AH')
 def update_AH():
+	print(app.secret_key)
 	#Get lastest AH listings
 	print ("Geting list of fish")
 	ah_reponse = requests.get(AH_URL)
@@ -75,10 +79,11 @@ def update_AH():
 app.secret_key = os.urandom(12)
 @app.route('/login')
 def login():
-    if not session.get('logged_in'):
-        return render_template('login.html')
-    else:
-        return "Hello Boss!"
+	print(session)
+	if not session.get('logged_in'):
+		return render_template('login.html')
+	else:
+		return "Hello Boss!"
 
 @app.route('/verifylogin', methods=['POST'])
 def do_admin_login():
@@ -91,10 +96,33 @@ def do_admin_login():
 				session['logged_in'] = True
 				print("logging in")
 				session['username'] = acc['user']
-				print(acc)
+				load_session_data(session['username'])
 				return show_account_listings(acc['user'])
 		return "Wrong pass"
 
+def load_session_data(account_name):
+	#Load notifications
+	count_of_notifications = 0
+	account_notifications = []
+	account_watched_items = []
+	with open(NOTIFICATIONS_FILE, mode='r') as noti_feed:
+		noti_json = json.load(noti_feed)
+		for noti in noti_json:
+			if noti['user_id'] == account_name:
+				count_of_notifications += 1
+				if noti['read'] == 0:
+					account_notifications.append(noti)
+		session['notification_dics'] = account_notifications
+		session['notification_count'] = count_of_notifications
+	with open(ACCOUNTS_FILE, mode='r') as acc_json:
+		feed_a = json.load(acc_json)
+		for acc in feed_a['accounts']:
+			if acc['items'] > 0:
+				if acc['user'] == account_name:
+					for item in acc['items']:
+						account_watched_items.append(item)
+		session['account_watched_items'] = account_watched_items
+	#print("session notification data: " +str(session[count_of_notifications]))
 
 def show_account_listings(account):
 	list_of_items = []
@@ -114,8 +142,19 @@ def show_account_listings(account):
 @app.route('/logout')
 def logout():
    # remove the username from the session if it is there
-   session.pop('username', None)
-   return redirect(url_for('index'))
+   #session.pop('username', None)
+   session['logged_in'] = False
+   return home()
+
+#########################
+#Load account page
+#########################
+@app.route('/account')
+def account():
+	if session.get('logged_in'):
+		return render_template('account.html')
+	else:
+		return "You need to be logged in to view this"
    
 #########################
 #JSON endponts
@@ -151,6 +190,7 @@ def find_user():
 #########################
 #Updating account watch lists
 #########################
+
 @app.route('/add_item', methods=['POST'])
 def add_item():
 	print(request.form['item_id'])
@@ -173,34 +213,94 @@ def add_item():
 	except ValueError:
    		return "That's not an number!"
 
-#Count number of fish (needs to be changes to it can be passed an ID)
-@app.route('/fish_count')
-def fish_count():
-	f_count = 0
-	with open(AH_DUMMP_FILE, 'r') as f:
-		ah_json = json.load(f)
-		#verify and parse json
-		for auc in ah_json['auctions']:
-			#Item is Savory Delight
-			if auc['item'] == 6657:
-				f_count += 1
-				print (auc['item'])
-	return str(f_count)
 
-#Get the average price of the fish
-@app.route('/fish_avg_val')
-def fish_avg_val(fish_id):
-	f_count = 0
-	avg_price = None
-	with open(AH_DUMMP_FILE, 'r') as f:
-		ah_json = json.load(f)
-		#verify and parse json
-		for auc in ah_json['auctions']:
-			if auc['item'] == fish_id:
-				f_count += 1
-				avg_price = fetch_avg_price(auc['item'])
-				return avg_price
-		return "not listed"
+#########################
+#Generating notifications for accounts
+#########################
+
+def does_it_need_notification(item, avg_value, min_value):
+	item_name = get_item_name(item)
+	#Average the value for the last week
+	item_list = []
+	print("calculating avg value for item "+ str(item))
+	with open(MONITORED_TIEMS, mode='r') as feedsjson:
+		mon_json = json.load(feedsjson)
+		for m_item in mon_json:
+			if m_item['item_id'] == item:
+				if m_item['avg_val'] != "not listed":
+					if len(item_list) > 10:
+						item_list.pop(0)
+					else:
+						item_list.append(int(m_item['avg_val']))
+	week_avg = sum(item_list) / len(item_list)
+	#check if the min_value is 20%/30% less than avg of past week
+	val_change = abs(week_avg-int(min_value))
+	per_change = get_change(val_change,week_avg)
+
+	#Get all accounts with this ID
+	list_accounts_with_item = []
+	with open(ACCOUNTS_FILE, mode='r') as acc_feed:
+		acc_json = json.load(acc_feed)
+		for acc in acc_json['accounts']:
+			if acc['items'] > 0:
+				for acc_item in acc['items']:
+					if acc_item == item:
+						if acc['user'] not in list_accounts_with_item:
+
+							list_accounts_with_item.append(acc['user'])
+	
+	#Write data to notifications file
+	with open(NOTIFICATIONS_FILE, mode='r') as noti_feed:
+		noti_json = json.load(noti_feed)
+	if per_change > 10 and per_change < 30:
+		#create notification for account
+		for account in list_accounts_with_item:
+			#Check if item has already been added (//TODO)
+			account_user = get_noti_item_for_account(account, item)
+			if account_user < 1:
+				entry = {"user_id":account,"item_id":item,"item_name":item_name,  "value_diff":val_change,"percent_diff":per_change, "read":0, "category":"green"}
+				noti_json.append(entry)
+			
+	elif per_change > 30 and per_change < 50:
+		for account in list_accounts_with_item:
+			account_user = get_noti_item_for_account(account, item)
+			if account_user < 1:
+				entry = {"user_id":account,"item_id":item,"item_name":item_name,  "value_diff":val_change,"percent_diff":per_change, "read":0, "category":"orange"}
+				noti_json.append(entry)
+
+	elif per_change > 50:
+		for account in list_accounts_with_item:
+			account_user = get_noti_item_for_account(account, item)
+			if account_user < 1:
+				entry = {"user_id":account,"item_id":item,"item_name":item_name,  "value_diff":val_change,"percent_diff":per_change, "read":0, "category":"red"}
+				noti_json.append(entry)
+
+
+	with open(NOTIFICATIONS_FILE, mode='w') as feedsjson:
+		json.dump(noti_json, feedsjson)
+
+def get_noti_item_for_account(accound_name, item):
+	number_of_items_for_account = 0
+	with open(NOTIFICATIONS_FILE, mode='r') as noti_feed:
+		noti_json = json.load(noti_feed)
+
+	for n_item in noti_json:
+		if n_item['user_id'] == accound_name:
+			if n_item['item_id'] == item:
+				number_of_items_for_account += 1
+	return number_of_items_for_account
+
+
+#Used to get percentage value
+def get_change(current, previous):
+    if current == previous:
+        return 100.0
+    try:
+        return round((float(current) / previous * 100.0),1)
+    except ZeroDivisionError:
+        return 0
+
+
 #Get avg price for an item //TODO optional return in gold
 def fetch_avg_price(ah_item):
 	print("Getting avg price for item")
@@ -267,9 +367,9 @@ def write_monitored_values():
 					monitored_val_write(item)
 			else:
 				return "No monitored items"
-		return redirect("/watched")
+		return home()
 	
-@app.route('/all_watched')
+@app.route('/watched')
 def watched():
 	list_of_items = []
 	list_of_names = {}
@@ -281,7 +381,6 @@ def watched():
 					list_of_items.append(item)
 					list_of_names[item] = get_item_name(item)
 	#print(str(list_of_names))
-	
 	print(session['items'])
 	return render_template('watched.html', list_of_items=list_of_items, list_of_names=list_of_names)
 
@@ -291,20 +390,50 @@ def monitored_val_write(a_item):
 	time = today.strftime('%d-%H:%M')
 	avg_val = fish_avg_val(a_item)
 	min_val = get_min_item_val(a_item)
-
+	does_it_need_notification(a_item,avg_val,min_val)
 	print ('['+time+']'+'['+avg_val+']')
 	print("Reading file")
 	with open(MONITORED_TIEMS, mode='r') as feedsjson:
 		feeds = json.load(feedsjson)
 	print("Writing to file")
 	with open(MONITORED_TIEMS, mode='w') as feedsjson:
-		entry = {"item_id":a_item,"avg_val":avg_val,"min_val":min_val,"time":str(time)}
+		entry = {"item_id":a_item,"avg_val":avg_val,"min_val":min_val,"time":time}
 		feeds.append(entry)
 		json.dump(feeds, feedsjson)
 	return "success"
+
+
 #####################################
 #LEGACY
 #####################################
+#Get the average price of the fish
+@app.route('/fish_avg_val')
+def fish_avg_val(fish_id):
+	f_count = 0
+	avg_price = None
+	with open(AH_DUMMP_FILE, 'r') as f:
+		ah_json = json.load(f)
+		#verify and parse json
+		for auc in ah_json['auctions']:
+			if auc['item'] == fish_id:
+				f_count += 1
+				avg_price = fetch_avg_price(auc['item'])
+				return avg_price
+		return "not listed"
+#Count number of fish (needs to be changes to it can be passed an ID)
+@app.route('/fish_count')
+def fish_count():
+	f_count = 0
+	with open(AH_DUMMP_FILE, 'r') as f:
+		ah_json = json.load(f)
+		#verify and parse json
+		for auc in ah_json['auctions']:
+			#Item is Savory Delight
+			if auc['item'] == 6657:
+				f_count += 1
+				print (auc['item'])
+	return str(f_count)
+
 #TODO read in file of monitored items
 @app.route('/fish_monitored_values_write')
 def fish_monitored_values_write():
@@ -423,4 +552,4 @@ def md5(fname):
 
 if __name__ == '__main__':
     app.debug = True
-    app.run()
+    app.run(host= '0.0.0.0')

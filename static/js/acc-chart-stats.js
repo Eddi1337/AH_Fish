@@ -30,18 +30,19 @@ function init(passed_item_id){
       
       if (JSON[x].item_id == passed_item_id[i]){
         /* TODO only show last 10 entries*/
-        if (chart_list[passed_item_id[i]].data.labels.length >= 10){
+        if (chart_list[passed_item_id[i]].data.labels.length >= 20){
           chart_list[passed_item_id[i]].data.labels.shift()
         } 
-        if (chart_list[passed_item_id[i]].data.datasets[0].data.length >= 10){
+        if (chart_list[passed_item_id[i]].data.datasets[0].data.length >= 20){
           chart_list[passed_item_id[i]].data.datasets[0].data.shift()
         }
-        if (chart_list[passed_item_id[i]].data.datasets[1].data.length >= 10){
+        if (chart_list[passed_item_id[i]].data.datasets[1].data.length >= 20){
           chart_list[passed_item_id[i]].data.datasets[1].data.shift()
         }
         //TODO Change to use a date opbject and stringify it
         //date = new Date(JSON[x].time)
-        //console.log(date)           
+        //console.log(date)
+        if (JSON[x].avg_val)           
         chart_list[passed_item_id[i]].data.labels.push(JSON[x].time);
         chart_list[passed_item_id[i]].data.datasets[0].data.push(JSON[x].avg_val);
         chart_list[passed_item_id[i]].data.datasets[1].data.push(JSON[x].min_val);
