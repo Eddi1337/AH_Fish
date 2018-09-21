@@ -232,7 +232,10 @@ def does_it_need_notification(item, avg_value, min_value):
 						item_list.pop(0)
 					else:
 						item_list.append(int(m_item['avg_val']))
-	week_avg = sum(item_list) / len(item_list)
+	if leb(item_list) != 0:
+		week_avg = sum(item_list) / len(item_list)
+	else:
+		week_avg = avg_value
 	#check if the min_value is 20%/30% less than avg of past week
 	val_change = abs(week_avg-int(min_value))
 	per_change = get_change(val_change,week_avg)
@@ -256,38 +259,56 @@ def does_it_need_notification(item, avg_value, min_value):
 		#create notification for account
 		for account in list_accounts_with_item:
 			#Check if item has already been added (//TODO)
-			account_user = get_noti_item_for_account(account, item)
+			account_user = check_noti_for_acc(account, item, per_change)
 			if account_user < 1:
 				entry = {"user_id":account,"item_id":item,"item_name":item_name,  "value_diff":val_change,"percent_diff":per_change, "read":0, "category":"green"}
 				noti_json.append(entry)
+			else:
+				update_noti_for_acc(account, item, per_change)
 			
 	elif per_change > 30 and per_change < 50:
 		for account in list_accounts_with_item:
-			account_user = get_noti_item_for_account(account, item)
+			account_user = check_noti_for_acc(account, item, per_change)
 			if account_user < 1:
 				entry = {"user_id":account,"item_id":item,"item_name":item_name,  "value_diff":val_change,"percent_diff":per_change, "read":0, "category":"orange"}
 				noti_json.append(entry)
+			else:
+				update_noti_for_acc(account, item, per_change)
 
 	elif per_change > 50:
 		for account in list_accounts_with_item:
-			account_user = get_noti_item_for_account(account, item)
+			account_user = check_noti_for_acc(account, item, per_change)
 			if account_user < 1:
 				entry = {"user_id":account,"item_id":item,"item_name":item_name,  "value_diff":val_change,"percent_diff":per_change, "read":0, "category":"red"}
 				noti_json.append(entry)
+			else:
+				update_noti_for_acc(account, item, per_change)
 
 
 	with open(NOTIFICATIONS_FILE, mode='w') as feedsjson:
 		json.dump(noti_json, feedsjson)
 
-def get_noti_item_for_account(accound_name, item):
+def check_noti_for_acc(accound_name, item, new_val):
 	number_of_items_for_account = 0
 	with open(NOTIFICATIONS_FILE, mode='r') as noti_feed:
 		noti_json = json.load(noti_feed)
-
 	for n_item in noti_json:
 		if n_item['user_id'] == accound_name:
 			if n_item['item_id'] == item:
 				number_of_items_for_account += 1
+
+def update_noti_for_acc(accound_name, item, new_val):
+	with open(NOTIFICATIONS_FILE, mode='r') as noti_feed:
+		noti_json = json.load(noti_feed)
+	for n_item in noti_json:
+		if n_item['user_id'] == accound_name:
+			if n_item['item_id'] == item:
+				number_of_items_for_account += 1
+				if n_item['percent_diff'] != new_val:
+					n_item['percent_diff'] = new_val
+
+	with open(NOTIFICATIONS_FILE, mode='w') as feedsjson:
+		json.dump(noti_json, feedsjson)
 	return number_of_items_for_account
 
 
@@ -300,6 +321,9 @@ def get_change(current, previous):
     except ZeroDivisionError:
         return 0
 
+#########################
+#Pull prices for items from AH_DUMP
+#########################
 
 #Get avg price for an item //TODO optional return in gold
 def fetch_avg_price(ah_item):
