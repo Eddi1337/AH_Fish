@@ -20,13 +20,13 @@ AH_URL = ('https://eu.api.battle.net/wow/auction/data/Aerie%20peak?locale=en_GB&
 ITEM_API = ('https://eu.api.battle.net/wow/item/')
 #json files (can never have enough jsons)
 #/var/www/AH_Fish/AH_Fish
-AH_DUMMP_FILE = '/var/www/AH_Fish/AH_FishjsonFiles/AH_DUMP.json'
-VAL_FILE = '/var/www/AH_Fish/AH_FishjsonFiles/item_vals.json'
-FISH_VAL_FILE = '/var/www/AH_Fish/AH_FishjsonFiles/fish_val.json'
-FISH_MIN_VAL_FILE = '/var/www/AH_Fish/AH_FishjsonFiles/fish_min.json'
-MONITORED_TIEMS = '/var/www/AH_Fish/AH_FishjsonFiles/monitored.json'
-ACCOUNTS_FILE = '/var/www/AH_Fish/AH_FishjsonFiles/accounts.json'
-NOTIFICATIONS_FILE = '/var/www/AH_Fish/AH_FishjsonFiles/notifications.json'
+AH_DUMMP_FILE = '/var/www/AH_Fish/AH_Fish/jsonFiles/AH_DUMP.json'
+VAL_FILE = '/var/www/AH_Fish/AH_Fish/jsonFiles/item_vals.json'
+FISH_VAL_FILE = '/var/www/AH_Fish/AH_Fish/jsonFiles/fish_val.json'
+FISH_MIN_VAL_FILE = '/var/www/AH_Fish/AH_Fish/jsonFiles/fish_min.json'
+MONITORED_TIEMS = '/var/www/AH_Fish/AH_Fish/jsonFiles/monitored.json'
+ACCOUNTS_FILE = '/var/www/AH_Fish/AH_Fish/jsonFiles/accounts.json'
+NOTIFICATIONS_FILE = '/var/www/AH_Fish/AH_Fish/jsonFiles/notifications.json'
 
 @app.route("/")
 @app.route("/index")
