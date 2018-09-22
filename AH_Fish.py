@@ -19,7 +19,7 @@ BLIZZ_API_KEY = 'fj6cra6e62y46crahyxpmf2ky53bn8ks'
 AH_URL = ('https://eu.api.battle.net/wow/auction/data/Aerie%20peak?locale=en_GB&apikey='+BLIZZ_API_KEY)
 ITEM_API = ('https://eu.api.battle.net/wow/item/')
 #json files (can never have enough jsons)
-#/var/www/AH_Fish/AH_Fish
+#/var/www/AH_Fish/AH_Fish/
 AH_DUMMP_FILE = '/var/www/AH_Fish/AH_Fish/jsonFiles/AH_DUMP.json'
 VAL_FILE = '/var/www/AH_Fish/AH_Fish/jsonFiles/item_vals.json'
 FISH_VAL_FILE = '/var/www/AH_Fish/AH_Fish/jsonFiles/fish_val.json'
@@ -27,6 +27,7 @@ FISH_MIN_VAL_FILE = '/var/www/AH_Fish/AH_Fish/jsonFiles/fish_min.json'
 MONITORED_TIEMS = '/var/www/AH_Fish/AH_Fish/jsonFiles/monitored.json'
 ACCOUNTS_FILE = '/var/www/AH_Fish/AH_Fish/jsonFiles/accounts.json'
 NOTIFICATIONS_FILE = '/var/www/AH_Fish/AH_Fish/jsonFiles/notifications.json'
+ITEM_NAMES_FILE = '/var/www/AH_Fish/AH_Fish/jsonFiles/item_names.json'
 
 @app.route("/")
 @app.route("/index")
@@ -127,7 +128,6 @@ def load_session_data(account_name):
 						account_watched_items_names[item] = get_item_name(item)
 		session['account_watched_items'] = account_watched_items
 		session['account_watched_items_names'] = account_watched_items_names
-	#print("session notification data: " +str(session[count_of_notifications]))
 
 def show_account_listings(account):
 	list_of_items = []
@@ -302,7 +302,6 @@ def does_it_need_notification(item, avg_value, min_value):
 				for acc_item in acc['items']:
 					if acc_item == item:
 						if acc['user'] not in list_accounts_with_item:
-
 							list_accounts_with_item.append(acc['user'])
 	#Write data to notifications file
 	with open(NOTIFICATIONS_FILE, mode='r') as noti_feed:
@@ -314,7 +313,9 @@ def does_it_need_notification(item, avg_value, min_value):
 			account_user = check_noti_for_acc(account, item, per_change)
 			if account_user < 1:
 				#Generate random string for an id for each notificaiton
-				noti_id = randomstring(8)
+				noti_to_hash = (str(account)+str(item)+str(per_change))
+				hash_of_noti = md5(noti_to_hash)
+				noti_id = hash_of_noti
 				entry = {"notification_id":str(noti_id),  "user_id":account,"item_id":item,"item_name":item_name,  "value_diff":val_change,"percent_diff":per_change, "read":0, "category":"green"}
 				noti_json.append(entry)
 			else:
@@ -622,13 +623,24 @@ def get_item_details(item):
 
 
 def get_item_name(item):
-	print("Getting item name " + str(item))
-	ITEM_URL = (ITEM_API+str(item)+'?locale=en_GB&apikey='+BLIZZ_API_KEY)
-	item_reponse = requests.get(ITEM_URL)
-	#print(ITEM_URL)
-	item_json = item_reponse.json()
-	#print(item_json)
-	return str(item_json['name'])
+	with open(ITEM_NAMES_FILE, mode='r') as item_feed:
+		items_json = json.load(item_feed)
+	num_of_items = 0
+	for items in items_json:
+		if items['item_id'] == item:
+			num_of_items +=1
+			return str(items['item_name'])
+
+	if num_of_items == 0:
+		print("Getting item name using api call " + str(item))
+		ITEM_URL = (ITEM_API+str(item)+'?locale=en_GB&apikey='+BLIZZ_API_KEY)
+		item_reponse = requests.get(ITEM_URL)
+		item_json = item_reponse.json()
+		with open(ITEM_NAMES_FILE, mode='w') as item_feed:
+			entry = {"item_id":item, "item_name":item_json['name']}
+			items_json.append(entry)
+			json.dump(items_json, item_feed)
+		return str(item_json['name'])
 
 #Used to create hash
 def md5(fname):
