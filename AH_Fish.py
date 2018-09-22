@@ -389,22 +389,20 @@ def get_change(current, previous):
 #########################
 
 #Get avg price for an item //TODO optional return in gold
-def fetch_avg_price(ah_item):
+def get_avg_price(item_number):
 	print("Getting avg price for item")
 	i_val = 0
 	item_count = 0
-	item_list = []
-	avg_val_g = float
 	with open(AH_DUMMP_FILE, 'r') as f:
 		ah_json = json.load(f)
 		for auc in ah_json['auctions']:
-			if auc['item'] == ah_item:
-				item_count += 1
-				item_list.append(auc['item'])
-				if auc['quantity'] > 1:
-					i_val += auc['buyout'] / auc['quantity']
-				elif auc['quantity'] == 1:
-					i_val += auc['buyout']
+			if auc['item'] == item_number:
+				if auc['buyout'] != 0:
+					item_count += 1
+					if auc['quantity'] > 1:
+							i_val += (auc['buyout'] / auc['quantity'])
+					elif auc['quantity'] == 1:
+							i_val += auc['buyout']
 	avg_val = (i_val/item_count)
 	avg_val_gold = (avg_val/10000)
 	return str(avg_val_gold)
@@ -475,7 +473,7 @@ def monitored_val_write(a_item):
 	avg_val = None
 	today = datetime.datetime.now()
 	time = today.strftime('%d-%H:%M')
-	avg_val = fish_avg_val(a_item)
+	avg_val = get_avg_price(a_item)
 	min_val = get_min_item_val(a_item)
 	does_it_need_notification(a_item,avg_val,min_val)
 	print ('['+time+']'+'['+avg_val+']')
@@ -493,20 +491,7 @@ def monitored_val_write(a_item):
 #####################################
 #LEGACY
 #####################################
-#Get the average price of the fish
-@app.route('/fish_avg_val')
-def fish_avg_val(fish_id):
-	f_count = 0
-	avg_price = None
-	with open(AH_DUMMP_FILE, 'r') as f:
-		ah_json = json.load(f)
-		#verify and parse json
-		for auc in ah_json['auctions']:
-			if auc['item'] == fish_id:
-				f_count += 1
-				avg_price = fetch_avg_price(auc['item'])
-				return avg_price
-		return "not listed"
+
 #Count number of fish (needs to be changes to it can be passed an ID)
 @app.route('/fish_count')
 def fish_count():
