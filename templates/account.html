@@ -24,8 +24,7 @@
           <!-- DataTables Example -->
           <div class="card mb-3">
             <div class="card-header">
-              <i class="fas fa-table"></i>
-              Watched list</div>
+              <i class="fas fa-table"></i> Watched list</div>
             <div class="card-body">
               <div class="table-responsive">
                 <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
@@ -33,7 +32,7 @@
                     <tr>
                       <th>Item Id </th>
                       <th>Name</th>
-                      <th>Added</th>
+                      
                       <th>Remove from watched</th>
                       
                     </tr>
@@ -42,17 +41,29 @@
                   {% for item in session['account_watched_items'] %}
                     <tr>
                       <td>{{item}}</td>
-                      <td>Get name</td>
-                      <td>Add added date</td>
-                      <form action="/remove_watched_item" method="post"> 
+                      <td>{{session['account_watched_items_names'][item]}}</td>
+                      
+                      <form action="/remove_item" method="post">
+                        <input type="hidden" name="item_id" value="{{item}}">
+                        <input type="hidden" name="user_id" value="{{session['username']}}">
                         <th><input type="submit" name="Remove"></a></th>
                       </form>
                     </tr>
                   {% endfor %}
                    </tbody>
-                  }
+                  
                 </table>
               </div>
+            <form action="/add_item" method="post" style="float: left" class="d-none d-md-inline-block form-inline ml-auto mr-0 mr-md-6 my-2 my-md-0">
+              <div class="dropdown-item input-group">
+              <input name="item_id" type="number" class="form-control" placeholder="Add item" aria-label="add item" aria-describedby="basic-addon2" style="-webkit-appearance: none">
+                <div class="input-group-append">
+                  <button type="submit" class="btn btn-primary" type="button">
+                  <i class="fas fa-plus-square"></i>
+                  </button>
+                </div>
+              </div>
+            </form>
             </div>
             <div class="card-footer small text-muted">Updated yesterday at 11:59 PM</div>
           </div>

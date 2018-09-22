@@ -6,6 +6,7 @@ import sys
 import schedule
 import time
 import datetime
+import random, string
 from flask import Flask
 from flask import request, make_response, redirect, render_template, url_for, abort, jsonify,session,flash
 app = Flask(__name__)
@@ -18,13 +19,14 @@ BLIZZ_API_KEY = 'fj6cra6e62y46crahyxpmf2ky53bn8ks'
 AH_URL = ('https://eu.api.battle.net/wow/auction/data/Aerie%20peak?locale=en_GB&apikey='+BLIZZ_API_KEY)
 ITEM_API = ('https://eu.api.battle.net/wow/item/')
 #json files (can never have enough jsons)
-AH_DUMMP_FILE = 'jsonFiles/AH_DUMP.json'
-VAL_FILE = 'jsonFiles/item_vals.json'
-FISH_VAL_FILE = 'jsonFiles/fish_val.json'
-FISH_MIN_VAL_FILE = 'jsonFiles/fish_min.json'
-MONITORED_TIEMS = 'jsonFiles/monitored.json'
-ACCOUNTS_FILE = 'jsonFiles/accounts.json'
-NOTIFICATIONS_FILE = 'jsonFiles/notifications.json'
+#/var/www/AH_Fish/AH_Fish
+AH_DUMMP_FILE = '/var/www/AH_Fish/AH_FishjsonFiles/AH_DUMP.json'
+VAL_FILE = '/var/www/AH_Fish/AH_FishjsonFiles/item_vals.json'
+FISH_VAL_FILE = '/var/www/AH_Fish/AH_FishjsonFiles/fish_val.json'
+FISH_MIN_VAL_FILE = '/var/www/AH_Fish/AH_FishjsonFiles/fish_min.json'
+MONITORED_TIEMS = '/var/www/AH_Fish/AH_FishjsonFiles/monitored.json'
+ACCOUNTS_FILE = '/var/www/AH_Fish/AH_FishjsonFiles/accounts.json'
+NOTIFICATIONS_FILE = '/var/www/AH_Fish/AH_FishjsonFiles/notifications.json'
 
 @app.route("/")
 @app.route("/index")
@@ -105,12 +107,13 @@ def load_session_data(account_name):
 	count_of_notifications = 0
 	account_notifications = []
 	account_watched_items = []
+	account_watched_items_names ={}
 	with open(NOTIFICATIONS_FILE, mode='r') as noti_feed:
 		noti_json = json.load(noti_feed)
 		for noti in noti_json:
 			if noti['user_id'] == account_name:
-				count_of_notifications += 1
 				if noti['read'] == 0:
+					count_of_notifications += 1
 					account_notifications.append(noti)
 		session['notification_dics'] = account_notifications
 		session['notification_count'] = count_of_notifications
@@ -121,7 +124,9 @@ def load_session_data(account_name):
 				if acc['user'] == account_name:
 					for item in acc['items']:
 						account_watched_items.append(item)
+						account_watched_items_names[item] = get_item_name(item)
 		session['account_watched_items'] = account_watched_items
+		session['account_watched_items_names'] = account_watched_items_names
 	#print("session notification data: " +str(session[count_of_notifications]))
 
 def show_account_listings(account):
@@ -152,10 +157,33 @@ def logout():
 @app.route('/account')
 def account():
 	if session.get('logged_in'):
+		#reload session data
+		load_session_data(session['username'])
 		return render_template('account.html')
 	else:
 		return "You need to be logged in to view this"
-   
+
+
+#########################
+#Mark notifications as read
+#########################
+@app.route('/mark_item_read', methods=['GET', 'POST'])
+def mark_item_read():
+	form_item = request.form['notification_id']
+	user_id = request.form['user_id']
+	with open(NOTIFICATIONS_FILE, mode='r') as feedsjson:
+		noti_json = json.load(feedsjson)
+	for n_item in noti_json:
+		if n_item['notification_id'] == form_item:
+			if n_item['user_id'] == user_id:
+				n_item['read'] = 1
+	with open(NOTIFICATIONS_FILE, mode='w') as feedsjson:
+		json.dump(noti_json, feedsjson)
+	#reload session data
+	load_session_data(user_id)
+	return account()
+  
+
 #########################
 #JSON endponts
 #########################
@@ -193,7 +221,6 @@ def find_user():
 
 @app.route('/add_item', methods=['POST'])
 def add_item():
-	print(request.form['item_id'])
 	item_a = request.form['item_id']
 	try:
 		if not session.get('logged_in'):
@@ -203,16 +230,42 @@ def add_item():
 				acc_feed = json.load(acc_json)
 			for acc in acc_feed['accounts']:
 				if acc['user'] == session['username']:
-					print['items']
+					for a_item in acc['items']:
+						if int(item_a) == int(a_item):
+							return "You cannot add something you are already watching silly"
 					acc['items'].append(int(item_a))
 
 			with open(ACCOUNTS_FILE, mode='w') as feedsjson:
 				json.dump(acc_feed, feedsjson)
-
-			return "added"
+			return account()
 	except ValueError:
    		return "That's not an number!"
 
+#########################
+#Remove items from watched in acocunt
+#########################
+
+@app.route('/remove_item', methods=['POST'])
+def remove_item():
+	item_r = request.form['item_id']
+	try:
+		if not session.get('logged_in'):
+			return "You need to be logeed in to use this fool"
+		else:
+			with open(ACCOUNTS_FILE, mode='r') as acc_json:
+				acc_feed = json.load(acc_json)
+			for acc in acc_feed['accounts']:
+				if acc['user'] == session['username']:
+					acc['items'].remove(int(item_r))
+					print("Removing item "+str(item_r)+" from acc "+str(session['username']))
+					#acc['items'].pop(int(item_r))
+
+			with open(ACCOUNTS_FILE, mode='w') as feedsjson:
+				json.dump(acc_feed, feedsjson)
+
+			return account()
+	except ValueError:
+   		return "That's not an number!"
 
 #########################
 #Generating notifications for accounts
@@ -232,10 +285,10 @@ def does_it_need_notification(item, avg_value, min_value):
 						item_list.pop(0)
 					else:
 						item_list.append(int(m_item['avg_val']))
-	if leb(item_list) != 0:
+	if len(item_list) != 0:
 		week_avg = sum(item_list) / len(item_list)
 	else:
-		week_avg = avg_value
+		week_avg = int(avg_value)
 	#check if the min_value is 20%/30% less than avg of past week
 	val_change = abs(week_avg-int(min_value))
 	per_change = get_change(val_change,week_avg)
@@ -251,7 +304,6 @@ def does_it_need_notification(item, avg_value, min_value):
 						if acc['user'] not in list_accounts_with_item:
 
 							list_accounts_with_item.append(acc['user'])
-	
 	#Write data to notifications file
 	with open(NOTIFICATIONS_FILE, mode='r') as noti_feed:
 		noti_json = json.load(noti_feed)
@@ -261,7 +313,9 @@ def does_it_need_notification(item, avg_value, min_value):
 			#Check if item has already been added (//TODO)
 			account_user = check_noti_for_acc(account, item, per_change)
 			if account_user < 1:
-				entry = {"user_id":account,"item_id":item,"item_name":item_name,  "value_diff":val_change,"percent_diff":per_change, "read":0, "category":"green"}
+				#Generate random string for an id for each notificaiton
+				noti_id = randomstring(8)
+				entry = {"notification_id":str(noti_id),  "user_id":account,"item_id":item,"item_name":item_name,  "value_diff":val_change,"percent_diff":per_change, "read":0, "category":"green"}
 				noti_json.append(entry)
 			else:
 				update_noti_for_acc(account, item, per_change)
@@ -270,7 +324,9 @@ def does_it_need_notification(item, avg_value, min_value):
 		for account in list_accounts_with_item:
 			account_user = check_noti_for_acc(account, item, per_change)
 			if account_user < 1:
-				entry = {"user_id":account,"item_id":item,"item_name":item_name,  "value_diff":val_change,"percent_diff":per_change, "read":0, "category":"orange"}
+				#Generate random string for an id for each notificaiton
+				noti_id = randomstring(8)				
+				entry = {"notification_id":str(noti_id),"user_id":account,"item_id":item,"item_name":item_name,  "value_diff":val_change,"percent_diff":per_change, "read":0, "category":"orange"}
 				noti_json.append(entry)
 			else:
 				update_noti_for_acc(account, item, per_change)
@@ -279,7 +335,9 @@ def does_it_need_notification(item, avg_value, min_value):
 		for account in list_accounts_with_item:
 			account_user = check_noti_for_acc(account, item, per_change)
 			if account_user < 1:
-				entry = {"user_id":account,"item_id":item,"item_name":item_name,  "value_diff":val_change,"percent_diff":per_change, "read":0, "category":"red"}
+				#Generate random string for an id for each notificaiton
+				noti_id = randomstring(8)				
+				entry = {"notification_id":str(noti_id),"user_id":account,"item_id":item,"item_name":item_name,  "value_diff":val_change,"percent_diff":per_change, "read":0, "category":"red"}
 				noti_json.append(entry)
 			else:
 				update_noti_for_acc(account, item, per_change)
@@ -287,6 +345,10 @@ def does_it_need_notification(item, avg_value, min_value):
 
 	with open(NOTIFICATIONS_FILE, mode='w') as feedsjson:
 		json.dump(noti_json, feedsjson)
+
+def randomstring(length):
+	letters = string.ascii_lowercase
+	return ''.join(random.choice(letters) for i in range(length))
 
 def check_noti_for_acc(accound_name, item, new_val):
 	number_of_items_for_account = 0
@@ -552,7 +614,7 @@ def search_username(uname):
 
 #Get json dic of from item number and return json item
 def get_item_details(item):
-	print("ITEM number " + str(item))
+	print("Getting item number " + str(item))
 	ITEM_URL = ('https://eu.api.battle.net/wow/item/18803?locale=en_GB&jsonp='+str(item)+'&apikey='+BLIZZ_API_KEY)
 	item_reponse = requests.get(ITEM_URL)
 	item_json = item_reponse.json()
@@ -560,7 +622,7 @@ def get_item_details(item):
 
 
 def get_item_name(item):
-	print("ITEM number " + str(item))
+	print("Getting item name " + str(item))
 	ITEM_URL = (ITEM_API+str(item)+'?locale=en_GB&apikey='+BLIZZ_API_KEY)
 	item_reponse = requests.get(ITEM_URL)
 	#print(ITEM_URL)
