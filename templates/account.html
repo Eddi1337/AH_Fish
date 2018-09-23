@@ -46,7 +46,7 @@
                       <form action="/remove_item" method="post">
                         <input type="hidden" name="item_id" value="{{item}}">
                         <input type="hidden" name="user_id" value="{{session['username']}}">
-                        <th><input type="submit" name="Remove"></a></th>
+                        <th><input type="submit" class="btn btn-danger btn-block" name="Remove"></a></th>
                       </form>
                     </tr>
                   {% endfor %}
