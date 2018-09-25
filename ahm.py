@@ -234,6 +234,34 @@ def add_item():
    		return "That's not an number!"
 
 #########################
+#Adding all items to an account
+#########################
+
+@app.route('/add_item_all_items')
+def add_item_all_items():
+	try:
+		if not session.get('logged_in'):
+			return "You need to be logeed in to use this fool"
+		else:
+
+					
+			with open(ACCOUNTS_FILE, mode='r') as acc_json:
+				acc_feed = json.load(acc_json)
+			for acc in acc_feed['accounts']:
+				if acc['user'] == session['username']:
+					with open(AH_DUMMP_FILE, 'r') as f:
+						ah_json = json.load(f)
+					for auc in ah_json['auctions']:
+						print("Adding item "+ str(auc['item']))
+						acc['items'].append(auc['item'])
+					
+			with open(ACCOUNTS_FILE, mode='w') as feedsjson:
+				json.dump(acc_feed, feedsjson)
+			return account()
+	except ValueError:
+   		return "That's not an number!"
+
+#########################
 #Remove items from watched in acocunt
 #########################
 
@@ -309,14 +337,16 @@ def does_it_need_notification(item, avg_value, min_value):
 	if per_change > 10 and per_change < 30:
 		#create notification for account
 		for account in list_accounts_with_item:
+			existing_notificaiton = 0
 			#Generate random string for an id for each notificaiton
 			noti_to_hash = (str(account)+str(item)+str(per_change))
 			hash_of_noti = md5hex(noti_to_hash)
 			noti_id = hash_of_noti
 			#Check if item has already been added
 			existing_notificaiton = check_noti_for_acc(account, item)
-			if existing_notificaiton:
-				#Create new notificaiton
+			if existing_notificaiton != 0:
+				#Update existing notification
+				print("Updating existing notification")
 				update_noti_for_acc(account, existing_notificaiton,per_change,"green",item)
 			else:
 				#Generate new notificaiton
@@ -326,14 +356,16 @@ def does_it_need_notification(item, avg_value, min_value):
 
 	elif per_change > 30 and per_change < 50:
 		for account in list_accounts_with_item:
+			existing_notificaiton = 0
 			#Generate random string for an id for each notificaiton
 			noti_to_hash = (str(account)+str(item)+str(per_change))
 			hash_of_noti = md5hex(noti_to_hash)
 			noti_id = hash_of_noti
 			#Check if item has already been added
 			existing_notificaiton = check_noti_for_acc(account, item)
-			if existing_notificaiton:
-				#Create new notificaiton
+			if existing_notificaiton != 0:
+				#Update existing notification
+				print("Updating existing notification")
 				update_noti_for_acc(account, existing_notificaiton,per_change,"orange",item)
 			else:
 				#Generate new notificaiton
@@ -343,22 +375,22 @@ def does_it_need_notification(item, avg_value, min_value):
 				
 	elif per_change > 50:
 		for account in list_accounts_with_item:
+			existing_notificaiton = 0
 			#Generate random string for an id for each notificaiton
 			noti_to_hash = (str(account)+str(item)+str(per_change))
 			hash_of_noti = md5hex(noti_to_hash)
 			noti_id = hash_of_noti
 			#Check if item has already been added
 			existing_notificaiton = check_noti_for_acc(account, item)
-			if existing_notificaiton:
-				#Create new notificaiton
+			if existing_notificaiton != 0:
+				#Update existing notification
+				print("Updating existing notification")
 				update_noti_for_acc(account, existing_notificaiton,per_change,"red",item)
 			else:
 				#Generate new notificaiton
 				print("Creating new notification")
 				entry = {"notification_id":noti_id,  "user_id":account,"item_id":item,"item_name":item_name,  "value_diff":val_change,"percent_diff":per_change, "read":0,"created":time, "category":"red"}
 				noti_json.append(entry)
-
-
 
 
 	with open(NOTIFICATIONS_FILE, mode='w') as feedsjson:
@@ -375,6 +407,7 @@ def check_noti_for_acc(account_name, item_id):
 		if n_item['user_id'] == account_name:
 			if n_item['item_id'] == item_id:
 				return n_item['notification_id']
+	return 0
 
 def update_noti_for_acc(account_name, notification_id, new_val,color,item_id):
 	with open(NOTIFICATIONS_FILE, mode='r') as noti_feed:
@@ -382,6 +415,8 @@ def update_noti_for_acc(account_name, notification_id, new_val,color,item_id):
 	#noti_to_hash = (str(account_name)+str(item_id)+str(new_val))
 	#hash_of_noti = md5hex(noti_to_hash)
 	#noti_id = hash_of_noti
+	today = datetime.datetime.now()
+	time = today.strftime('%x-%X')
 	for n_item in noti_json:
 		if n_item['user_id'] == account_name:
 			if n_item['notification_id'] == notification_id:
@@ -389,10 +424,10 @@ def update_noti_for_acc(account_name, notification_id, new_val,color,item_id):
 					n_item['category'] = color
 					n_item['read'] = 0
 					n_item['percent_diff'] = new_val
+					n_item['created'] = time
 
 	with open(NOTIFICATIONS_FILE, mode='w') as feedsjson:
 		json.dump(noti_json, feedsjson)
-
 
 #Used to get percentage value
 def get_change(current, previous):
@@ -493,7 +528,6 @@ def watched():
 	return render_template('watched.html', list_of_items=list_of_items, list_of_names=list_of_names)
 
 def monitored_val_write(a_item):
-	avg_val = None
 	today = datetime.datetime.now()
 	time = today.strftime('%d-%H:%M')
 	avg_val = get_avg_price(a_item)
