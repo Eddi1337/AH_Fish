@@ -679,8 +679,12 @@ def get_item_name(item):
 		item_reponse = requests.get(ITEM_URL)
 		item_json = item_reponse.json()
 		with open(ITEM_NAMES_FILE, mode='w') as item_feed:
-			entry = {"item_id":item, "item_name":item_json['name']}
-			items_json.append(entry)
+			try:
+				entry = {"item_id":item, "item_name":str(item_json['name'])}
+				items_json.append(entry)
+			except:
+				entry = {"item_id":item,item_name:"Unable to read name"}
+				items_json.append(entry)
 			json.dump(items_json, item_feed)
 		return str(item_json['name'])
 
