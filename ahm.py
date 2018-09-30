@@ -242,9 +242,7 @@ def add_item_all_items():
 	try:
 		if not session.get('logged_in'):
 			return "You need to be logeed in to use this fool"
-		else:
-
-					
+		else:	
 			with open(ACCOUNTS_FILE, mode='r') as acc_json:
 				acc_feed = json.load(acc_json)
 			for acc in acc_feed['accounts']:
@@ -252,8 +250,10 @@ def add_item_all_items():
 					with open(AH_DUMMP_FILE, 'r') as f:
 						ah_json = json.load(f)
 					for auc in ah_json['auctions']:
-						print("Adding item "+ str(auc['item']))
-						acc['items'].append(auc['item'])
+						for account_wated in acc['items']:
+							if account_wated != uc['item']:
+								print("Adding item "+ str(auc['item']))
+								acc['items'].append(auc['item'])
 					
 			with open(ACCOUNTS_FILE, mode='w') as feedsjson:
 				json.dump(acc_feed, feedsjson)
@@ -474,6 +474,7 @@ def get_min_item_val(item_number):
 	i_count = 0
 	min_price = None
 	i_list = []
+	list_items = 0
 	with open(AH_DUMMP_FILE, 'r') as f:
 		ah_json = json.load(f)
 		#verify item exists
@@ -494,8 +495,13 @@ def get_min_item_val(item_number):
 							if auc['buyout'] != 0:
 								i_val = auc['buyout']
 								i_list.append(i_val)
-				min_price = min(i_list)
-				min_price_gold = (min_price/10000)
+				for list_item in i_list:
+					list_items +=1
+				if list_items != 0:
+					min_price = min(i_list)
+					min_price_gold = (min_price/10000)
+				else:
+					min_price_gold = 0
 			return str(min_price_gold)
 		else:
 			return "not listed"
@@ -533,11 +539,10 @@ def monitored_val_write(a_item):
 	avg_val = get_avg_price(a_item)
 	min_val = get_min_item_val(a_item)
 	does_it_need_notification(a_item,avg_val,min_val)
-	print ('['+time+']'+'['+avg_val+']')
-	print("Reading file")
+	print("Reading MONITORED_TIEMS")
 	with open(MONITORED_TIEMS, mode='r') as feedsjson:
 		feeds = json.load(feedsjson)
-	print("Writing to file")
+	print("Writing item to MONITORED_TIEMS")
 	with open(MONITORED_TIEMS, mode='w') as feedsjson:
 		entry = {"item_id":a_item,"avg_val":avg_val,"min_val":min_val,"time":time}
 		feeds.append(entry)
