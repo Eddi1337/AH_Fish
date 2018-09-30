@@ -681,19 +681,12 @@ def get_item_name(item):
 		item_json = item_reponse.json()
 		with open(ITEM_NAMES_FILE, mode='w') as item_feed:
 			try:
-<<<<<<< HEAD
-				entry = {"item_id":item, "item_name":str(item_json['name'])}
-				items_json.append(entry)
-			except:
-				entry = {"item_id":item,item_name:"Unable to read name"}
-=======
 				item_utf8 = item_json['name']
 				entry = {"item_id":item, "item_name":item_utf8.encode('utf-8')}
 				items_json.append(entry)
 			except:
 				item_utf8 = "Unable to read name"
 				entry = {"item_id":item, "item_name":"Unable to read name"}
->>>>>>> AH_Watcher
 				items_json.append(entry)
 			json.dump(items_json, item_feed)
 		return item_utf8.encode('utf-8')
