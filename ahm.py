@@ -250,10 +250,13 @@ def add_item_all_items():
 					with open(AH_DUMMP_FILE, 'r') as f:
 						ah_json = json.load(f)
 					for auc in ah_json['auctions']:
+						account_watched_count = 0
 						for account_wated in acc['items']:
-							if account_wated != uc['item']:
-								print("Adding item "+ str(auc['item']))
-								acc['items'].append(auc['item'])
+							if account_wated == auc['item']:
+								account_watched_count += 1
+						if account_watched_count == 0:
+							print("Adding item "+ str(auc['item']))
+							acc['items'].append(auc['item'])
 					
 			with open(ACCOUNTS_FILE, mode='w') as feedsjson:
 				json.dump(acc_feed, feedsjson)
