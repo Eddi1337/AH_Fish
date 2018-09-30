@@ -20,14 +20,14 @@ AH_URL = ('https://eu.api.battle.net/wow/auction/data/Aerie%20peak?locale=en_GB&
 ITEM_API = ('https://eu.api.battle.net/wow/item/')
 #json files (can never have enough jsons)
 #/var/www/AH_Fish/AH_Fish/
-AH_DUMMP_FILE = 'jsonFiles/AH_DUMP.json'
-VAL_FILE = 'jsonFiles/item_vals.json'
-FISH_VAL_FILE = 'jsonFiles/fish_val.json'
-FISH_MIN_VAL_FILE = 'jsonFiles/fish_min.json'
-MONITORED_TIEMS = 'jsonFiles/monitored.json'
-ACCOUNTS_FILE = 'jsonFiles/accounts.json'
-NOTIFICATIONS_FILE = 'jsonFiles/notifications.json'
-ITEM_NAMES_FILE = 'jsonFiles/item_names.json'
+AH_DUMMP_FILE = '/var/www/AH_Fish/AH_Fish/jsonFiles/AH_DUMP.json'
+VAL_FILE = '/var/www/AH_Fish/AH_Fish/jsonFiles/item_vals.json'
+FISH_VAL_FILE = '/var/www/AH_Fish/AH_Fish/jsonFiles/fish_val.json'
+FISH_MIN_VAL_FILE = '/var/www/AH_Fish/AH_Fish/jsonFiles/fish_min.json'
+MONITORED_TIEMS = '/var/www/AH_Fish/AH_Fish/jsonFiles/monitored.json'
+ACCOUNTS_FILE = '/var/www/AH_Fish/AH_Fish/jsonFiles/accounts.json'
+NOTIFICATIONS_FILE = '/var/www/AH_Fish/AH_Fish/jsonFiles/notifications.json'
+ITEM_NAMES_FILE = '/var/www/AH_Fish/AH_Fish/jsonFiles/item_names.json'
 
 @app.route("/")
 @app.route("/index")
@@ -671,7 +671,8 @@ def get_item_name(item):
 	for items in items_json:
 		if items['item_id'] == item:
 			num_of_items +=1
-			return str(items['item_name'])
+			print("Getting item name " + str(item))
+			return items['item_name']
 
 	if num_of_items == 0:
 		print("Getting item name using api call " + str(item))
@@ -680,13 +681,22 @@ def get_item_name(item):
 		item_json = item_reponse.json()
 		with open(ITEM_NAMES_FILE, mode='w') as item_feed:
 			try:
+<<<<<<< HEAD
 				entry = {"item_id":item, "item_name":str(item_json['name'])}
 				items_json.append(entry)
 			except:
 				entry = {"item_id":item,item_name:"Unable to read name"}
+=======
+				item_utf8 = item_json['name']
+				entry = {"item_id":item, "item_name":item_utf8.encode('utf-8')}
+				items_json.append(entry)
+			except:
+				item_utf8 = "Unable to read name"
+				entry = {"item_id":item, "item_name":"Unable to read name"}
+>>>>>>> AH_Watcher
 				items_json.append(entry)
 			json.dump(items_json, item_feed)
-		return str(item_json['name'])
+		return item_utf8.encode('utf-8')
 
 #Used to create hash
 def md5(fname):
