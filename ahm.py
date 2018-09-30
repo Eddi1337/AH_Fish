@@ -251,13 +251,13 @@ def add_item_all_items():
 						ah_json = json.load(f)
 					for auc in ah_json['auctions']:
 						for account_wated in acc['items']:
-							if account_wated != auc['item']:
+							if account_wated != uc['item']:
 								print("Adding item "+ str(auc['item']))
 								acc['items'].append(auc['item'])
 					
 			with open(ACCOUNTS_FILE, mode='w') as feedsjson:
 				json.dump(acc_feed, feedsjson)
-			return "Added"
+			return account()
 	except ValueError:
    		return "That's not an number!"
 
