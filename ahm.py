@@ -166,7 +166,7 @@ def verifyregister_account():
 	#Add account
 	with open(ACCOUNTS_FILE, mode='r') as acc_json:
 		acc_feed = json.load(acc_json)
-	entry = {"items": [], "user": str(request_user), "pass": str(request_user_pass)}
+	entry = {"items": [6657], "user": str(request_user), "pass": str(request_user_pass)}
 	acc_feed['accounts'].append(entry)
 
 	with open(ACCOUNTS_FILE, mode='w') as feedsjson:
@@ -290,7 +290,7 @@ def add_item_all_items():
 					
 			with open(ACCOUNTS_FILE, mode='w') as feedsjson:
 				json.dump(acc_feed, feedsjson)
-			return account()
+			return "success"
 	except ValueError:
    		return "That's not an number!"
 
