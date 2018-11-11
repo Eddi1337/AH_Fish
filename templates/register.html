@@ -17,7 +17,7 @@
       <div class="card card-login mx-auto mt-5">
         <div class="card-header">Register account</div>
         <div class="card-body">
-          {% if session['logged_in'] > 0 %}
+          {% if session['logged_in'] %}
           <p>You're logged in already!</p>
           {% else %} 
           <form action="/verifyregister_account" method="POST">
