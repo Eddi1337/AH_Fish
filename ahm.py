@@ -107,7 +107,7 @@ def load_session_data(account_name):
 			if noti['user_id'] == account_name:
 				if noti['read'] == 0:
 					count_of_notifications += 1
-					account_notifications.append(noti)
+				account_notifications.append(noti)	
 		session['notification_dics'] = account_notifications
 		session['notification_count'] = count_of_notifications
 	with open(ACCOUNTS_FILE, mode='r') as acc_json:
@@ -143,6 +143,36 @@ def logout():
    session['logged_in'] = False
    return home()
 
+
+#########################
+#Register new account
+#########################
+
+@app.route('/register_account')
+def register_account():
+	return render_template('register.html')
+
+@app.route('/verifyregister_account', methods=['POST'])
+def verifyregister_account():
+	request_user_pass = request.form['password']
+	request_user = request.form['username']
+
+	#Validate the username is not already taken
+	with open(ACCOUNTS_FILE, mode='r') as acc_json:
+		acc_feed = json.load(acc_json)
+		for acc in acc_feed['accounts']:
+			if acc['user'] == request_user:
+				return "Account name is already taken"	
+	#Add account
+	with open(ACCOUNTS_FILE, mode='r') as acc_json:
+		acc_feed = json.load(acc_json)
+	entry = {"items": [], "user": str(request_user), "pass": str(request_user_pass)}
+	acc_feed['accounts'].append(entry)
+
+	with open(ACCOUNTS_FILE, mode='w') as feedsjson:
+		json.dump(acc_feed, feedsjson)
+
+	return home()
 #########################
 #Load account page
 #########################
@@ -415,19 +445,19 @@ def check_noti_for_acc(account_name, item_id):
 def update_noti_for_acc(account_name, notification_id, new_val,color,item_id):
 	with open(NOTIFICATIONS_FILE, mode='r') as noti_feed:
 		noti_json = json.load(noti_feed)
-	#noti_to_hash = (str(account_name)+str(item_id)+str(new_val))
-	#hash_of_noti = md5hex(noti_to_hash)
-	#noti_id = hash_of_noti
-	today = datetime.datetime.now()
-	time = today.strftime('%x-%X')
-	for n_item in noti_json:
-		if n_item['user_id'] == account_name:
-			if n_item['notification_id'] == notification_id:
-				if n_item['percent_diff'] != new_val:
-					n_item['category'] = color
-					n_item['read'] = 0
-					n_item['percent_diff'] = new_val
-					n_item['created'] = time
+		#noti_to_hash = (str(account_name)+str(item_id)+str(new_val))
+		#hash_of_noti = md5hex(noti_to_hash)
+		#noti_id = hash_of_noti
+		today = datetime.datetime.now()
+		time = today.strftime('%x-%X')
+		for n_item in noti_json:
+			if n_item['user_id'] == account_name:
+				if n_item['notification_id'] == notification_id:
+					if n_item['percent_diff'] != new_val:
+						n_item['category'] = color
+						n_item['read'] = 0
+						n_item['percent_diff'] = new_val
+						n_item['created'] = time
 
 	with open(NOTIFICATIONS_FILE, mode='w') as feedsjson:
 		json.dump(noti_json, feedsjson)
@@ -508,18 +538,34 @@ def get_min_item_val(item_number):
 			return str(min_price_gold)
 		else:
 			return "not listed"
-
+# Run the python sub-process
+def run_python(id):
+	Alarm_cmd = ('python gen_noti.py ')
+	py = subprocess.Popen(Alarm_cmd, stdout=subprocess.PIPE, shell=True, preexec_fn=os.setsid)
+	global python_script_id
+	python_script_id = py.pid
+	background_scripts[id] = True
+	print ('New Program process pid:')
+	print (py.pid)
+	
 @app.route('/write_monitored_values')
 def write_monitored_values():
+	listings = []
 	with open(ACCOUNTS_FILE, mode='r') as acc_json:
 		feed_a = json.load(acc_json)
 		for acc in feed_a['accounts']:
 			if acc['items'] > 0:
 				for item in acc['items']:
-					print("Adding item " + str(item))
-					monitored_val_write(item)
+					if item in listings:
+						print("Item " + str(item) + " already watched")
+					else:
+						monitored_val_write(item)	
+						print("Adding item to list" + str(item))
+						listings.append(item)
+					
 			else:
 				return "No monitored items"
+		print("Pulled monitored values for items: " + str(listings))
 		return home()
 	
 @app.route('/watched')
